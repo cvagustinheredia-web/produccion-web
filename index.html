@@ -12,30 +12,32 @@
       color: #222;
     }
 
-    h2, h3 {
-      margin-bottom: 10px;
-    }
-
     .card {
       background: white;
       border-radius: 12px;
       padding: 20px;
-      max-width: 700px;
+      max-width: 780px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.08);
       margin-bottom: 20px;
+    }
+
+    h2, h3 {
+      margin-bottom: 10px;
     }
 
     input, button {
       padding: 10px 12px;
       font-size: 16px;
       margin: 5px 0;
+      border-radius: 8px;
+      border: 1px solid #cfd6dc;
     }
 
-    #qr {
-      width: 300px;
+    #legajo, #qr {
+      width: 320px;
     }
 
-    .puestos {
+    .puestos, .paradas {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -43,62 +45,69 @@
       margin-bottom: 10px;
     }
 
-    .puesto-btn {
-      min-width: 90px;
+    .puesto-btn, .parada-btn {
       border: none;
       border-radius: 8px;
-      background: #dbe4ea;
       cursor: pointer;
+      background: #dbe4ea;
+      padding: 10px 14px;
     }
 
     .puesto-btn.activo {
-      background: #0d6efd;
+      background: #6ea8fe;
       color: white;
       font-weight: bold;
     }
 
+    .parada-btn {
+      background: #f1f3f5;
+    }
+
     .estado {
-      margin-top: 15px;
-      padding: 14px;
+      margin-top: 18px;
+      padding: 14px 18px;
       border-radius: 10px;
       font-weight: bold;
       font-size: 18px;
       display: inline-block;
-      min-width: 250px;
+      min-width: 260px;
       text-align: center;
-    }
-
-    .esperando {
-      background: #6c757d;
       color: white;
     }
 
-    .produciendo {
-      background: #198754;
-      color: white;
-    }
-
-    .parado {
-      background: #dc3545;
-      color: white;
-    }
+    .esperando { background: #6c757d; }
+    .produciendo { background: #198754; }
+    .parado { background: #dc3545; }
 
     .info {
-      margin-top: 10px;
+      margin-top: 16px;
       font-size: 17px;
+      line-height: 1.8;
     }
 
     .bloqueado {
       opacity: 0.6;
       pointer-events: none;
     }
+
+    .subtitulo {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+
+    .ayuda {
+      color: #666;
+      font-size: 14px;
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Login Operario</h2>
-
+    <h2>INGRESE SU LEGAJO</h2>
     <input id="legajo" placeholder="Legajo" oninput="buscarOperario()">
     <p id="nombreOperario"></p>
     <button onclick="login()">Ingresar</button>
@@ -121,13 +130,18 @@
       <p id="puestoSeleccionadoTexto"><b>Puesto seleccionado:</b> Ninguno</p>
     </div>
 
-    <div style="margin-top:20px;">
-      <input id="qr" placeholder="Escanear código QR">
-      <button onclick="scan()">Escanear</button>
-    </div>
+    <div class="subtitulo">ESCANEAR QR</div>
+    <input id="qr" placeholder="Escanear código QR" onkeydown="capturarEnterQR(event)">
+    <div class="ayuda">Al leer con la pistola, se registra automáticamente al presionar Enter.</div>
 
-    <div style="margin-top:10px;">
-      <button onclick="parada()">⛔ PARADA DE PUESTO</button>
+    <div class="subtitulo" style="margin-top:24px;">PARADA DE PUESTO</div>
+    <div class="paradas">
+      <button class="parada-btn" onclick="registrarParada('Falta material')">Falta material</button>
+      <button class="parada-btn" onclick="registrarParada('Calidad')">Calidad</button>
+      <button class="parada-btn" onclick="registrarParada('Descanso (Desayuno)')">Descanso (Desayuno)</button>
+      <button class="parada-btn" onclick="registrarParada('Descanso (Almuerzo)')">Descanso (Almuerzo)</button>
+      <button class="parada-btn" onclick="registrarParada('Ing.Procesos')">Ing.Procesos</button>
+      <button class="parada-btn" onclick="registrarParada('Logistica')">Logistica</button>
     </div>
 
     <div id="estadoProduccion" class="estado esperando">Esperando lectura</div>
@@ -135,6 +149,7 @@
     <div class="info">
       <p><b>Producto en curso:</b> <span id="productoActual">-</span></p>
       <p><b>Inicio lectura actual:</b> <span id="inicioActual">-</span></p>
+      <p><b>Última parada:</b> <span id="ultimaParada">-</span></p>
     </div>
   </div>
 
@@ -151,7 +166,7 @@ let nombre = '';
 let actual = null;
 let puestoSeleccionado = localStorage.getItem("puesto_fijo") || null;
 
-// Mostrar nombre automático al escribir legajo
+// Busca nombre al escribir legajo
 async function buscarOperario() {
   const legajo = document.getElementById('legajo').value.trim();
 
@@ -177,7 +192,7 @@ async function buscarOperario() {
   }
 }
 
-// Login
+// Login operario
 async function login() {
   const legajo = document.getElementById('legajo').value.trim();
 
@@ -199,13 +214,13 @@ async function login() {
     document.getElementById('operarioActivo').innerText =
       "Operario: " + nombre + " (" + operario + ")";
 
-    aplicarPuestoGuardado();
+    await aplicarPuestoGuardado();
   } else {
     alert('Legajo inválido');
   }
 }
 
-// Seleccionar puesto una sola vez
+// Selección única de puesto
 function seleccionarPuesto(num) {
   if (puestoSeleccionado) return;
 
@@ -217,7 +232,6 @@ function seleccionarPuesto(num) {
 
 async function aplicarPuestoGuardado() {
   const botones = document.querySelectorAll('.puesto-btn');
-
   botones.forEach(btn => btn.classList.remove('activo'));
 
   if (puestoSeleccionado) {
@@ -227,7 +241,7 @@ async function aplicarPuestoGuardado() {
 
     document.getElementById('puestos').classList.add('bloqueado');
 
-    // Buscar si ya hay una lectura abierta para ese puesto
+    // busca registro abierto del puesto
     const { data, error } = await supabaseClient
       .from('registros')
       .select('*')
@@ -239,7 +253,7 @@ async function aplicarPuestoGuardado() {
     if (!error && data && data.length > 0) {
       actual = data[0];
       setEstado("produciendo");
-      document.getElementById('productoActual').innerText = actual.producto || '-';
+      document.getElementById('productoActual').innerText = limpiarProducto(actual.producto || '-');
       document.getElementById('inicioActual').innerText = formatearFecha(actual.inicio);
     } else {
       actual = null;
@@ -247,12 +261,32 @@ async function aplicarPuestoGuardado() {
       document.getElementById('productoActual').innerText = '-';
       document.getElementById('inicioActual').innerText = '-';
     }
+
+    setTimeout(() => {
+      document.getElementById('qr').focus();
+    }, 100);
   }
+}
+
+// Captura enter del scanner
+function capturarEnterQR(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    scan();
+  }
+}
+
+// Limpia producto: si empieza con 0, elimina solo el primer 0
+function limpiarProducto(valor) {
+  if (!valor) return '';
+  if (valor.startsWith('0')) {
+    return valor.substring(1);
+  }
+  return valor;
 }
 
 function setEstado(tipo) {
   const estado = document.getElementById('estadoProduccion');
-
   estado.className = 'estado';
 
   if (tipo === 'produciendo') {
@@ -268,13 +302,13 @@ function setEstado(tipo) {
 }
 
 function formatearFecha(fecha) {
-  const f = new Date(fecha);
-  return f.toLocaleString();
+  return new Date(fecha).toLocaleString();
 }
 
-// Escaneo
+// Lee QR
 async function scan() {
-  const qr = document.getElementById('qr').value.trim();
+  const qrInput = document.getElementById('qr');
+  let qr = qrInput.value.trim();
 
   if (!puestoSeleccionado) {
     alert("Primero seleccioná un puesto");
@@ -282,13 +316,13 @@ async function scan() {
   }
 
   if (!qr) {
-    alert("Escaneá un código");
     return;
   }
 
+  qr = limpiarProducto(qr);
   const ahora = new Date();
 
-  // cerrar lectura anterior si existe
+  // cierra lectura anterior
   if (actual) {
     const { error: errorCierre } = await supabaseClient
       .from('registros')
@@ -305,7 +339,7 @@ async function scan() {
     }
   }
 
-  // abrir nueva lectura
+  // abre lectura nueva
   const { data, error } = await supabaseClient
     .from('registros')
     .insert({
@@ -328,30 +362,34 @@ async function scan() {
   setEstado("produciendo");
   document.getElementById('productoActual').innerText = qr;
   document.getElementById('inicioActual').innerText = formatearFecha(ahora);
-  document.getElementById('qr').value = '';
-  document.getElementById('qr').focus();
+  qrInput.value = '';
+  qrInput.focus();
 }
 
-// Parada de puesto
-async function parada() {
+// Registra parada con motivo
+async function registrarParada(motivo) {
   if (!puestoSeleccionado) {
     alert("Primero seleccioná un puesto");
     return;
   }
+
+  const ahora = new Date();
+  document.getElementById('ultimaParada').innerText = motivo;
 
   if (!actual) {
     setEstado("parado");
     return;
   }
 
-  const ahora = new Date();
+  const updateData = {
+    fin: ahora,
+    estado: "parado",
+    motivo_parada: motivo
+  };
 
   const { error } = await supabaseClient
     .from('registros')
-    .update({
-      fin: ahora,
-      estado: "parado"
-    })
+    .update(updateData)
     .eq('id', actual.id);
 
   if (error) {
@@ -366,7 +404,7 @@ async function parada() {
   setEstado("esperando");
 }
 
-// Al cargar la página
+// Al abrir página
 window.onload = async function() {
   if (puestoSeleccionado) {
     await aplicarPuestoGuardado();
