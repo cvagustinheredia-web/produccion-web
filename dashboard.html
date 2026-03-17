@@ -3,22 +3,47 @@
 <head>
   <title>Dashboard Producción</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <style>
-    body { font-family: Arial; background:#111; color:white; }
-    .grid { display:grid; grid-template-columns: repeat(5,1fr); gap:10px; }
-    .card {
-      padding:20px;
-      border-radius:10px;
-      text-align:center;
-      font-size:18px;
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
     }
-    .ok { background:green; }
-    .stop { background:red; }
+
+    h1 {
+      font-size: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .card {
+      padding: 20px;
+      border-radius: 15px;
+      font-size: 18px;
+      box-shadow: 0 0 10px black;
+    }
+
+    .produciendo { background: #16a34a; }
+    .parado { background: #dc2626; }
+    .sin { background: #444; }
+
+    .tiempo {
+      font-size: 28px;
+      margin-top: 10px;
+    }
   </style>
 </head>
+
 <body>
 
-<h1>🏭 Producción en Vivo</h1>
+<h1>🏭 PRODUCCIÓN EN VIVO</h1>
 
 <div class="grid" id="grid"></div>
 
@@ -30,7 +55,14 @@ const supabaseClient = createClient(
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
+function minutosTranscurridos(inicio){
+  let ahora = new Date();
+  let ini = new Date(inicio);
+  return ((ahora - ini)/60000).toFixed(1);
+}
+
 async function cargar(){
+
   let { data } = await supabaseClient
     .from('registros')
     .select('*')
@@ -38,22 +70,26 @@ async function cargar(){
 
   let html = '';
 
-  for(let i=1;i<=5;i++){
+  for(let i=1; i<=5; i++){
+
     let r = data.find(x => x.puesto == i);
 
     if(r){
+      let estadoClase = r.estado === "parado" ? "parado" : "produciendo";
+
       html += `
-        <div class="card ok">
+        <div class="card ${estadoClase}">
           <h2>Puesto ${i}</h2>
-          <p>${r.producto}</p>
+          <p><b>${r.producto}</b></p>
           <p>Operario: ${r.operario}</p>
+          <div class="tiempo">${minutosTranscurridos(r.inicio)} min</div>
         </div>
       `;
     } else {
       html += `
-        <div class="card stop">
+        <div class="card sin">
           <h2>Puesto ${i}</h2>
-          <p>Sin producción</p>
+          <p>Sin actividad</p>
         </div>
       `;
     }
@@ -62,8 +98,8 @@ async function cargar(){
   document.getElementById('grid').innerHTML = html;
 }
 
-// refresco cada 3 segundos
-setInterval(cargar, 3000);
+// refresca cada 2 segundos
+setInterval(cargar, 2000);
 cargar();
 </script>
 
