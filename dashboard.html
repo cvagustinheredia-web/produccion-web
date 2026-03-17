@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Dashboard Producción</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <style>
     :root{
       --bg:#061537;
@@ -12,10 +13,8 @@
       --panel-red:#c73b3b;
       --box-overlay:rgba(255,255,255,0.14);
       --text:#ffffff;
-    }
-
-    *{
-      box-sizing:border-box;
+      --blue:#2f80ed;
+      --orange:#ff8a00;
     }
 
     body {
@@ -26,13 +25,37 @@
       padding: 20px;
     }
 
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
+    }
+
     h1 {
-      text-align: center;
-      margin: 10px 0 28px 0;
+      margin: 0;
       font-size: 42px;
       font-weight: 900;
-      letter-spacing: 1px;
+      text-align:center;
+      flex:1;
     }
+
+    .acciones{
+      display:flex;
+      gap:10px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:10px;
+      padding:12px 16px;
+      font-weight:800;
+      color:white;
+      cursor:pointer;
+    }
+
+    .btn-refresh{ background:var(--blue); }
+    .btn-reset{ background:var(--orange); }
 
     .grid {
       display: grid;
@@ -44,8 +67,7 @@
       border-radius: 18px;
       padding: 18px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.28);
-      min-height: 390px;
-      transition: 0.2s ease;
+      min-height: 410px;
     }
 
     .produciendo { background: var(--panel-green); }
@@ -53,210 +75,173 @@
     .parado { background: var(--panel-red); }
 
     .blink {
-      animation: blinkRed 1s infinite;
+      animation: blink 1s infinite;
     }
 
-    @keyframes blinkRed {
-      0%   { opacity: 1; transform: scale(1); }
-      50%  { opacity: 0.55; transform: scale(0.985); }
-      100% { opacity: 1; transform: scale(1); }
+    @keyframes blink {
+      0% { opacity:1; }
+      50% { opacity:0.4; }
+      100% { opacity:1; }
     }
 
     .titulo {
       font-size: 28px;
       font-weight: 900;
-      margin-bottom: 16px;
       text-align: center;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      margin-bottom: 12px;
     }
 
     .campo {
-      margin: 10px 0;
+      margin: 8px 0;
       font-size: 18px;
-      line-height: 1.35;
-    }
-
-    .campo b {
-      font-weight: 900;
     }
 
     .contador {
-      margin-top: 18px;
-      padding: 14px;
+      margin-top: 16px;
+      padding: 12px;
       background: var(--box-overlay);
-      border-radius: 12px;
+      border-radius: 10px;
       font-size: 18px;
-      font-weight: bold;
     }
 
-    .contador .valor {
-      display: block;
+    .valor {
       font-size: 22px;
       font-weight: 900;
-      margin-top: 6px;
-    }
-
-    .sub {
-      font-size: 14px;
-      opacity: 0.92;
-      margin-top: 6px;
-      line-height: 1.3;
-    }
-
-    @media (max-width: 1500px) {
-      .grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media (max-width: 1000px) {
-      .grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 700px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      h1 {
-        font-size: 32px;
-      }
+      display:block;
+      margin-top:6px;
     }
   </style>
 </head>
+
 <body>
 
-<h1>🏭 PRODUCCIÓN EN VIVO</h1>
+<div class="topbar">
+  <div class="acciones">
+    <button class="btn btn-refresh" onclick="cargar()">ACTUALIZAR</button>
+    <button class="btn btn-reset" onclick="reiniciar()">REINICIAR</button>
+  </div>
+
+  <h1>PRODUCCION DE INSTALACION ELECTRICA</h1>
+
+  <div></div>
+</div>
 
 <div class="grid" id="grid"></div>
 
 <script>
-const { createClient } = supabase;
-
-const supabaseClient = createClient(
+const supabaseClient = supabase.createClient(
   "https://gqlftpalwqybyywdplei.supabase.co",
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
-function formatearDuracion(ms) {
-  if (!ms || ms < 0) ms = 0;
+let intervalo;
 
-  const totalSeg = Math.floor(ms / 1000);
-  const horas = Math.floor(totalSeg / 3600);
-  const minutos = Math.floor((totalSeg % 3600) / 60);
-  const segundos = totalSeg % 60;
-
-  return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
+// parse correcto de fecha
+function parseFecha(f){
+  if(!f) return null;
+  return new Date(f.replace(' ', 'T'));
 }
 
-async function cargar() {
-  const ahora = new Date();
+function tiempo(fecha){
+  if(!fecha) return "00:00:00";
 
-  // Traer registros
-  const { data: registros, error: errorRegistros } = await supabaseClient
-    .from('registros')
-    .select('*')
-    .order('inicio', { ascending: true });
+  let ms = new Date() - fecha;
+  if(ms < 0) ms = 0;
 
-  // Traer operarios
-  const { data: operarios, error: errorOperarios } = await supabaseClient
-    .from('operarios')
-    .select('*');
+  let s = Math.floor(ms/1000);
+  let h = Math.floor(s/3600);
+  let m = Math.floor((s%3600)/60);
+  let seg = s%60;
 
-  if (errorRegistros || errorOperarios) {
-    console.log(errorRegistros || errorOperarios);
-    return;
-  }
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(seg).padStart(2,'0')}`;
+}
 
-  const mapaOperarios = {};
-  operarios.forEach(op => {
-    mapaOperarios[String(op.legajo)] = op.nombre;
-  });
+async function cargar(){
 
-  let html = '';
+  const {data:registros} = await supabaseClient.from('registros').select('*').order('inicio',{ascending:true});
+  const {data:ops} = await supabaseClient.from('operarios').select('*');
 
-  for (let puesto = 1; puesto <= 5; puesto++) {
-    const registrosPuesto = registros.filter(r => Number(r.puesto) === puesto);
+  let mapa = {};
+  ops.forEach(o=> mapa[o.legajo]=o.nombre);
 
-    const primerRegistro = registrosPuesto.length > 0 ? registrosPuesto[0] : null;
-    const activo = registrosPuesto.find(r => r.fin === null);
+  let html = "";
 
-    // último registro del puesto
-    const ultimoRegistro = registrosPuesto.length > 0 ? registrosPuesto[registrosPuesto.length - 1] : null;
+  for(let p=1;p<=5;p++){
 
-    let clase = 'esperando';
-    let blinkClass = '';
-    let estadoTexto = 'Esperando lectura';
-    let legajo = '-';
-    let nombreOperario = '-';
-    let producto = '-';
-    let motivoParada = '-';
-    let tiempoTotalPuesto = '00:00:00';
-    let tiempoCodigoEnCurso = '00:00:00';
+    let regs = registros.filter(r=>r.puesto==p);
+    let activo = regs.find(r=>r.fin==null);
+    let ultimo = regs[regs.length-1];
+    let primero = regs[0];
 
-    if (primerRegistro) {
-      tiempoTotalPuesto = formatearDuracion(ahora - new Date(primerRegistro.inicio));
+    let clase="esperando";
+    let blink="";
+    let estado="Esperando lectura";
+    let legajo="-";
+    let nombre="-";
+    let producto="-";
+    let motivo="-";
+    let t1="00:00:00";
+    let t2="00:00:00";
+
+    if(primero) t1 = tiempo(parseFecha(primero.inicio));
+
+    if(activo){
+      clase="produciendo";
+      estado="Producción en proceso";
+      legajo=activo.operario;
+      nombre=mapa[activo.operario] || "-";
+      producto=activo.producto;
+      t2=tiempo(parseFecha(activo.inicio));
+    }
+    else if(ultimo && ultimo.estado=="parado"){
+      clase="parado";
+      blink="blink";
+      estado="PARADO";
+      legajo=ultimo.operario;
+      nombre=mapa[ultimo.operario] || "-";
+      producto=ultimo.producto;
+      motivo=ultimo.motivo_parada;
     }
 
-    if (activo) {
-      clase = 'produciendo';
-      estadoTexto = 'Producción en proceso';
-      legajo = activo.operario || '-';
-      nombreOperario = mapaOperarios[String(activo.operario)] || '-';
-      producto = activo.producto || '-';
-      motivoParada = '-';
-      tiempoCodigoEnCurso = formatearDuracion(ahora - new Date(activo.inicio));
-    } else if (ultimoRegistro && ultimoRegistro.estado === 'parado') {
-      clase = 'parado';
-      blinkClass = 'blink';
-      estadoTexto = 'Puesto detenido';
-      legajo = ultimoRegistro.operario || '-';
-      nombreOperario = mapaOperarios[String(ultimoRegistro.operario)] || '-';
-      producto = ultimoRegistro.producto || '-';
-      motivoParada = ultimoRegistro.motivo_parada || '-';
-      tiempoCodigoEnCurso = '00:00:00';
-    } else if (registrosPuesto.length > 0) {
-      clase = 'esperando';
-      estadoTexto = 'Esperando lectura';
-      legajo = ultimoRegistro?.operario || '-';
-      nombreOperario = mapaOperarios[String(ultimoRegistro?.operario)] || '-';
-      producto = '-';
-      motivoParada = '-';
-    }
+    html+=`
+    <div class="card ${clase} ${blink}">
+      <div class="titulo">PUESTO ${p}</div>
 
-    html += `
-      <div class="card ${clase} ${blinkClass}">
-        <div class="titulo">PUESTO ${puesto}</div>
+      <div class="campo"><b>Estado:</b> ${estado}</div>
+      <div class="campo"><b>Legajo:</b> ${legajo}</div>
+      <div class="campo"><b>Operario:</b> ${nombre}</div>
+      <div class="campo"><b>Producto:</b> ${producto}</div>
+      <div class="campo"><b>Motivo parada:</b> ${motivo}</div>
 
-        <div class="campo"><b>Estado:</b> ${estadoTexto}</div>
-        <div class="campo"><b>Legajo:</b> ${legajo}</div>
-        <div class="campo"><b>Operario:</b><br>${nombreOperario}</div>
-        <div class="campo"><b>Producto actual:</b> ${producto}</div>
-        <div class="campo"><b>Motivo de parada:</b> ${motivoParada}</div>
-
-        <div class="contador">
-          Tiempo total del puesto
-          <span class="valor">${tiempoTotalPuesto}</span>
-          <div class="sub">Desde la primera lectura registrada</div>
-        </div>
-
-        <div class="contador">
-          Tiempo del código en curso
-          <span class="valor">${tiempoCodigoEnCurso}</span>
-          <div class="sub">Tiempo del producto activo actualmente</div>
-        </div>
+      <div class="contador">
+        Tiempo total del puesto
+        <span class="valor">${t1}</span>
       </div>
-    `;
+
+      <div class="contador">
+        Tiempo del código en curso
+        <span class="valor">${t2}</span>
+      </div>
+    </div>`;
   }
 
-  document.getElementById('grid').innerHTML = html;
+  document.getElementById("grid").innerHTML = html;
 }
 
-setInterval(cargar, 1000);
-cargar();
+function iniciar(){
+  if(intervalo) clearInterval(intervalo);
+  cargar();
+  intervalo = setInterval(cargar,1000);
+}
+
+function reiniciar(){
+  clearInterval(intervalo);
+  document.getElementById("grid").innerHTML="";
+  setTimeout(iniciar,300);
+}
+
+iniciar();
 </script>
 
 </body>
