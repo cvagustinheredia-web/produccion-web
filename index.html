@@ -1,28 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Producción</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    h2, h3 {
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 700px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 10px 12px;
+      font-size: 16px;
+      margin: 5px 0;
+    }
+
+    #qr {
+      width: 300px;
+    }
+
+    .puestos {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .puesto-btn {
+      min-width: 90px;
+      border: none;
+      border-radius: 8px;
+      background: #dbe4ea;
+      cursor: pointer;
+    }
+
+    .puesto-btn.activo {
+      background: #0d6efd;
+      color: white;
+      font-weight: bold;
+    }
+
+    .estado {
+      margin-top: 15px;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      display: inline-block;
+      min-width: 250px;
+      text-align: center;
+    }
+
+    .esperando {
+      background: #6c757d;
+      color: white;
+    }
+
+    .produciendo {
+      background: #198754;
+      color: white;
+    }
+
+    .parado {
+      background: #dc3545;
+      color: white;
+    }
+
+    .info {
+      margin-top: 10px;
+      font-size: 17px;
+    }
+
+    .bloqueado {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Login Operario</h2>
-<input id="legajo" placeholder="Legajo" oninput="buscarOperario()">
-<p id="nombreOperario"></p>
-<button onclick="login()">Ingresar</button>
+  <div class="card">
+    <h2>Login Operario</h2>
 
-<div id="panel" style="display:none;">
-  <h3>Producción</h3>
+    <input id="legajo" placeholder="Legajo" oninput="buscarOperario()">
+    <p id="nombreOperario"></p>
+    <button onclick="login()">Ingresar</button>
+  </div>
 
-  <p id="operarioActivo"></p>
+  <div id="panel" class="card" style="display:none;">
+    <h3>Producción</h3>
 
-  Puesto: <input id="puesto" value="1"><br><br>
+    <p id="operarioActivo"></p>
 
-  QR: <input id="qr">
-  <button onclick="scan()">Escanear</button><br><br>
+    <div>
+      <b>Seleccionar puesto</b>
+      <div id="puestos" class="puestos">
+        <button class="puesto-btn" onclick="seleccionarPuesto(1)">Puesto 1</button>
+        <button class="puesto-btn" onclick="seleccionarPuesto(2)">Puesto 2</button>
+        <button class="puesto-btn" onclick="seleccionarPuesto(3)">Puesto 3</button>
+        <button class="puesto-btn" onclick="seleccionarPuesto(4)">Puesto 4</button>
+        <button class="puesto-btn" onclick="seleccionarPuesto(5)">Puesto 5</button>
+      </div>
+      <p id="puestoSeleccionadoTexto"><b>Puesto seleccionado:</b> Ninguno</p>
+    </div>
 
-  <button onclick="parada()">⛔ PARADA DE PUESTO</button>
-</div>
+    <div style="margin-top:20px;">
+      <input id="qr" placeholder="Escanear código QR">
+      <button onclick="scan()">Escanear</button>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button onclick="parada()">⛔ PARADA DE PUESTO</button>
+    </div>
+
+    <div id="estadoProduccion" class="estado esperando">Esperando lectura</div>
+
+    <div class="info">
+      <p><b>Producto en curso:</b> <span id="productoActual">-</span></p>
+      <p><b>Inicio lectura actual:</b> <span id="inicioActual">-</span></p>
+    </div>
+  </div>
 
 <script>
 const { createClient } = supabase;
@@ -35,106 +149,229 @@ const supabaseClient = createClient(
 let operario = '';
 let nombre = '';
 let actual = null;
-let paradaActiva = false;
+let puestoSeleccionado = localStorage.getItem("puesto_fijo") || null;
 
-// 🔍 BUSCAR NOMBRE AUTOMÁTICO
-async function buscarOperario(){
-  let legajo = document.getElementById('legajo').value;
+// Mostrar nombre automático al escribir legajo
+async function buscarOperario() {
+  const legajo = document.getElementById('legajo').value.trim();
 
-  if(legajo.length < 1){
+  if (!legajo) {
     document.getElementById('nombreOperario').innerText = '';
     return;
   }
 
-  let { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('operarios')
     .select('*')
     .eq('legajo', legajo);
 
-  if(data && data.length > 0){
+  if (error) {
+    document.getElementById('nombreOperario').innerText = 'Error al consultar';
+    return;
+  }
+
+  if (data && data.length > 0) {
     document.getElementById('nombreOperario').innerText = data[0].nombre;
   } else {
     document.getElementById('nombreOperario').innerText = 'No encontrado';
   }
 }
 
-// 🔐 LOGIN
-async function login(){
-  let legajo = document.getElementById('legajo').value;
+// Login
+async function login() {
+  const legajo = document.getElementById('legajo').value.trim();
 
-  let { data, error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('operarios')
     .select('*')
     .eq('legajo', legajo);
 
-  if(error){
-    alert("Error conexión");
+  if (error) {
+    alert("Error de conexión");
     return;
   }
 
-  if(data && data.length > 0){
+  if (data && data.length > 0) {
     operario = legajo;
     nombre = data[0].nombre;
 
     document.getElementById('panel').style.display = 'block';
     document.getElementById('operarioActivo').innerText =
       "Operario: " + nombre + " (" + operario + ")";
+
+    aplicarPuestoGuardado();
   } else {
     alert('Legajo inválido');
   }
 }
 
-// 📦 ESCANEO
-async function scan(){
-  let qr = document.getElementById('qr').value;
-  let puesto = document.getElementById('puesto').value;
-  let ahora = new Date();
+// Seleccionar puesto una sola vez
+function seleccionarPuesto(num) {
+  if (puestoSeleccionado) return;
 
-  if(!qr){
+  puestoSeleccionado = String(num);
+  localStorage.setItem("puesto_fijo", puestoSeleccionado);
+
+  aplicarPuestoGuardado();
+}
+
+async function aplicarPuestoGuardado() {
+  const botones = document.querySelectorAll('.puesto-btn');
+
+  botones.forEach(btn => btn.classList.remove('activo'));
+
+  if (puestoSeleccionado) {
+    botones[Number(puestoSeleccionado) - 1].classList.add('activo');
+    document.getElementById('puestoSeleccionadoTexto').innerHTML =
+      "<b>Puesto seleccionado:</b> " + puestoSeleccionado;
+
+    document.getElementById('puestos').classList.add('bloqueado');
+
+    // Buscar si ya hay una lectura abierta para ese puesto
+    const { data, error } = await supabaseClient
+      .from('registros')
+      .select('*')
+      .eq('puesto', Number(puestoSeleccionado))
+      .is('fin', null)
+      .order('inicio', { ascending: false })
+      .limit(1);
+
+    if (!error && data && data.length > 0) {
+      actual = data[0];
+      setEstado("produciendo");
+      document.getElementById('productoActual').innerText = actual.producto || '-';
+      document.getElementById('inicioActual').innerText = formatearFecha(actual.inicio);
+    } else {
+      actual = null;
+      setEstado("esperando");
+      document.getElementById('productoActual').innerText = '-';
+      document.getElementById('inicioActual').innerText = '-';
+    }
+  }
+}
+
+function setEstado(tipo) {
+  const estado = document.getElementById('estadoProduccion');
+
+  estado.className = 'estado';
+
+  if (tipo === 'produciendo') {
+    estado.classList.add('produciendo');
+    estado.innerText = 'Producción en proceso';
+  } else if (tipo === 'parado') {
+    estado.classList.add('parado');
+    estado.innerText = 'Puesto detenido';
+  } else {
+    estado.classList.add('esperando');
+    estado.innerText = 'Esperando lectura';
+  }
+}
+
+function formatearFecha(fecha) {
+  const f = new Date(fecha);
+  return f.toLocaleString();
+}
+
+// Escaneo
+async function scan() {
+  const qr = document.getElementById('qr').value.trim();
+
+  if (!puestoSeleccionado) {
+    alert("Primero seleccioná un puesto");
+    return;
+  }
+
+  if (!qr) {
     alert("Escaneá un código");
     return;
   }
 
-  // cerrar anterior
-  if(actual){
-    await supabaseClient.from('registros').update({
-      fin: ahora
-    }).eq('id', actual.id);
+  const ahora = new Date();
+
+  // cerrar lectura anterior si existe
+  if (actual) {
+    const { error: errorCierre } = await supabaseClient
+      .from('registros')
+      .update({
+        fin: ahora,
+        estado: "finalizado"
+      })
+      .eq('id', actual.id);
+
+    if (errorCierre) {
+      alert("Error al cerrar la lectura anterior");
+      console.log(errorCierre);
+      return;
+    }
   }
 
-  // nuevo registro
-  let { data } = await supabaseClient.from('registros').insert({
-    producto: qr,
-    operario: operario,
-    puesto: puesto,
-    inicio: ahora,
-    estado: "produciendo"
-  }).select();
+  // abrir nueva lectura
+  const { data, error } = await supabaseClient
+    .from('registros')
+    .insert({
+      producto: qr,
+      operario: operario,
+      puesto: Number(puestoSeleccionado),
+      inicio: ahora,
+      estado: "produciendo"
+    })
+    .select();
 
-  actual = data[0];
-  paradaActiva = false;
-  document.getElementById('qr').value = '';
-}
-
-// ⛔ PARADA DE PUESTO
-async function parada(){
-  if(!actual){
-    alert("No hay producción activa");
+  if (error) {
+    alert("Error al guardar");
+    console.log(error);
     return;
   }
 
-  let ahora = new Date();
+  actual = data[0];
 
-  await supabaseClient.from('registros').update({
-    fin: ahora,
-    estado: "parado"
-  }).eq('id', actual.id);
+  setEstado("produciendo");
+  document.getElementById('productoActual').innerText = qr;
+  document.getElementById('inicioActual').innerText = formatearFecha(ahora);
+  document.getElementById('qr').value = '';
+  document.getElementById('qr').focus();
+}
+
+// Parada de puesto
+async function parada() {
+  if (!puestoSeleccionado) {
+    alert("Primero seleccioná un puesto");
+    return;
+  }
+
+  if (!actual) {
+    setEstado("parado");
+    return;
+  }
+
+  const ahora = new Date();
+
+  const { error } = await supabaseClient
+    .from('registros')
+    .update({
+      fin: ahora,
+      estado: "parado"
+    })
+    .eq('id', actual.id);
+
+  if (error) {
+    alert("Error al registrar parada");
+    console.log(error);
+    return;
+  }
 
   actual = null;
-  paradaActiva = true;
-
-  alert("Puesto detenido");
+  document.getElementById('productoActual').innerText = '-';
+  document.getElementById('inicioActual').innerText = '-';
+  setEstado("esperando");
 }
+
+// Al cargar la página
+window.onload = async function() {
+  if (puestoSeleccionado) {
+    await aplicarPuestoGuardado();
+  }
+};
 </script>
 
 </body>
