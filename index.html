@@ -7,19 +7,21 @@
 <body>
 
 <h2>Login Operario</h2>
-<input id="legajo" placeholder="Legajo">
+<input id="legajo" placeholder="Legajo" oninput="buscarOperario()">
+<p id="nombreOperario"></p>
 <button onclick="login()">Ingresar</button>
 
 <div id="panel" style="display:none;">
   <h3>Producción</h3>
+
+  <p id="operarioActivo"></p>
 
   Puesto: <input id="puesto" value="1"><br><br>
 
   QR: <input id="qr">
   <button onclick="scan()">Escanear</button><br><br>
 
-  <button onclick="pausa()">⏸ PAUSA</button>
-  <button onclick="reanudar()">▶ REANUDAR</button>
+  <button onclick="parada()">⛔ PARADA DE PUESTO</button>
 </div>
 
 <script>
@@ -31,10 +33,32 @@ const supabaseClient = createClient(
 );
 
 let operario = '';
+let nombre = '';
 let actual = null;
-let pausaInicio = null;
-let pausaTotal = 0;
+let paradaActiva = false;
 
+// 🔍 BUSCAR NOMBRE AUTOMÁTICO
+async function buscarOperario(){
+  let legajo = document.getElementById('legajo').value;
+
+  if(legajo.length < 1){
+    document.getElementById('nombreOperario').innerText = '';
+    return;
+  }
+
+  let { data } = await supabaseClient
+    .from('operarios')
+    .select('*')
+    .eq('legajo', legajo);
+
+  if(data && data.length > 0){
+    document.getElementById('nombreOperario').innerText = data[0].nombre;
+  } else {
+    document.getElementById('nombreOperario').innerText = 'No encontrado';
+  }
+}
+
+// 🔐 LOGIN
 async function login(){
   let legajo = document.getElementById('legajo').value;
 
@@ -43,56 +67,73 @@ async function login(){
     .select('*')
     .eq('legajo', legajo);
 
-  console.log("DATA:", data);
-  console.log("ERROR:", error);
-
   if(error){
-    alert("Error de conexión");
+    alert("Error conexión");
     return;
   }
 
   if(data && data.length > 0){
     operario = legajo;
+    nombre = data[0].nombre;
+
     document.getElementById('panel').style.display = 'block';
+    document.getElementById('operarioActivo').innerText =
+      "Operario: " + nombre + " (" + operario + ")";
   } else {
     alert('Legajo inválido');
   }
 }
 
+// 📦 ESCANEO
 async function scan(){
   let qr = document.getElementById('qr').value;
   let puesto = document.getElementById('puesto').value;
   let ahora = new Date();
 
-  if(actual){
-    let duracion = (ahora - new Date(actual.inicio))/60000 - pausaTotal;
+  if(!qr){
+    alert("Escaneá un código");
+    return;
+  }
 
+  // cerrar anterior
+  if(actual){
     await supabaseClient.from('registros').update({
-      fin: ahora,
-      duracion: duracion
+      fin: ahora
     }).eq('id', actual.id);
   }
 
+  // nuevo registro
   let { data } = await supabaseClient.from('registros').insert({
     producto: qr,
     operario: operario,
     puesto: puesto,
-    inicio: ahora
+    inicio: ahora,
+    estado: "produciendo"
   }).select();
 
   actual = data[0];
-  pausaTotal = 0;
+  paradaActiva = false;
+  document.getElementById('qr').value = '';
 }
 
-function pausa(){
-  pausaInicio = new Date();
-}
-
-function reanudar(){
-  if(pausaInicio){
-    pausaTotal += (new Date() - pausaInicio)/60000;
-    pausaInicio = null;
+// ⛔ PARADA DE PUESTO
+async function parada(){
+  if(!actual){
+    alert("No hay producción activa");
+    return;
   }
+
+  let ahora = new Date();
+
+  await supabaseClient.from('registros').update({
+    fin: ahora,
+    estado: "parado"
+  }).eq('id', actual.id);
+
+  actual = null;
+  paradaActiva = true;
+
+  alert("Puesto detenido");
 }
 </script>
 
