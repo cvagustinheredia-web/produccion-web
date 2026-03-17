@@ -12,8 +12,10 @@
 
 <div id="panel" style="display:none;">
   <h3>Producción</h3>
+
   Puesto: <input id="puesto" value="1"><br><br>
-  QR: <input id="qr"><br>
+
+  QR: <input id="qr">
   <button onclick="scan()">Escanear</button><br><br>
 
   <button onclick="pausa()">⏸ PAUSA</button>
@@ -23,6 +25,7 @@
 <script>
 const { createClient } = supabase;
 
+// 🔴 IMPORTANTE: PEGAR BIEN TUS DATOS
 const supabaseClient = createClient(
   "https://gqlftpalwqybyywdplei.supabase.co",
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
@@ -33,15 +36,24 @@ let actual = null;
 let pausaInicio = null;
 let pausaTotal = 0;
 
+// 🔐 LOGIN
 async function login(){
   let legajo = document.getElementById('legajo').value;
 
-  let { data } = await supabaseClient
+  let { data, error } = await supabaseClient
     .from('operarios')
     .select('*')
     .eq('legajo', legajo);
 
-  if(data.length){
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
+
+  if(error){
+    alert("Error de conexión con base de datos");
+    return;
+  }
+
+  if(data && data.length > 0){
     operario = legajo;
     document.getElementById('panel').style.display = 'block';
   } else {
@@ -49,35 +61,58 @@ async function login(){
   }
 }
 
+// 📦 ESCANEO
 async function scan(){
   let qr = document.getElementById('qr').value;
   let puesto = document.getElementById('puesto').value;
   let ahora = new Date();
 
-  if(actual){
-    let duracion = (ahora - actual.inicio)/60000 - pausaTotal;
-
-    await supabaseClient.from('registros').update({
-      fin: ahora,
-      duracion: duracion
-    }).eq('id', actual.id);
+  if(!qr){
+    alert("Escaneá un código");
+    return;
   }
 
-  let { data } = await supabaseClient.from('registros').insert({
-    producto: qr,
-    operario: operario,
-    puesto: puesto,
-    inicio: ahora
-  }).select();
+  // cerrar anterior
+  if(actual){
+    let duracion = (ahora - new Date(actual.inicio))/60000 - pausaTotal;
+
+    await supabaseClient
+      .from('registros')
+      .update({
+        fin: ahora,
+        duracion: duracion
+      })
+      .eq('id', actual.id);
+  }
+
+  // nuevo registro
+  let { data, error } = await supabaseClient
+    .from('registros')
+    .insert({
+      producto: qr,
+      operario: operario,
+      puesto: puesto,
+      inicio: ahora
+    })
+    .select();
+
+  if(error){
+    alert("Error al guardar");
+    console.log(error);
+    return;
+  }
 
   actual = data[0];
   pausaTotal = 0;
+  document.getElementById('qr').value = '';
 }
 
+// ⏸ PAUSA
 function pausa(){
   pausaInicio = new Date();
 }
 
+// ▶ REANUDAR
 function reanudar(){
   if(pausaInicio){
     pausaTotal += (new Date() - pausaInicio)/60000;
