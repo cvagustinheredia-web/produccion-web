@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Dashboard Producción</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background: #0f172a;
       color: white;
-      text-align: center;
+      margin: 20px;
     }
 
     h1 {
+      text-align: center;
+      margin-bottom: 25px;
       font-size: 40px;
     }
 
@@ -20,27 +22,46 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 15px;
-      padding: 20px;
     }
 
     .card {
-      padding: 20px;
-      border-radius: 15px;
-      font-size: 18px;
-      box-shadow: 0 0 10px black;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.35);
+      min-height: 260px;
     }
 
-    .produciendo { background: #16a34a; }
-    .parado { background: #dc2626; }
-    .sin { background: #444; }
+    .produciendo { background: #198754; }
+    .esperando { background: #6c757d; }
+    .parado { background: #dc3545; }
 
-    .tiempo {
+    .titulo {
       font-size: 28px;
-      margin-top: 10px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .campo {
+      margin: 8px 0;
+      font-size: 18px;
+    }
+
+    .contador {
+      margin-top: 16px;
+      padding: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .sub {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-top: 4px;
     }
   </style>
 </head>
-
 <body>
 
 <h1>🏭 PRODUCCIÓN EN VIVO</h1>
@@ -55,51 +76,83 @@ const supabaseClient = createClient(
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
-function minutosTranscurridos(inicio){
-  let ahora = new Date();
-  let ini = new Date(inicio);
-  return ((ahora - ini)/60000).toFixed(1);
+function formatearDuracion(ms) {
+  if (ms < 0) ms = 0;
+
+  const totalSeg = Math.floor(ms / 1000);
+  const horas = Math.floor(totalSeg / 3600);
+  const minutos = Math.floor((totalSeg % 3600) / 60);
+  const segundos = totalSeg % 60;
+
+  return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
 }
 
-async function cargar(){
-
-  let { data } = await supabaseClient
+async function cargar() {
+  const { data, error } = await supabaseClient
     .from('registros')
     .select('*')
-    .is('fin', null);
+    .order('inicio', { ascending: true });
+
+  if (error) {
+    console.log(error);
+    return;
+  }
 
   let html = '';
+  const ahora = new Date();
 
-  for(let i=1; i<=5; i++){
+  for (let puesto = 1; puesto <= 5; puesto++) {
+    const registrosPuesto = data.filter(r => Number(r.puesto) === puesto);
 
-    let r = data.find(x => x.puesto == i);
+    const primerRegistro = registrosPuesto.length > 0 ? registrosPuesto[0] : null;
+    const activo = registrosPuesto.find(r => r.fin === null);
 
-    if(r){
-      let estadoClase = r.estado === "parado" ? "parado" : "produciendo";
+    let clase = 'esperando';
+    let estadoTexto = 'Esperando lectura';
+    let producto = '-';
+    let operario = '-';
+    let tiempoGlobal = '00:00:00';
+    let tiempoActual = '00:00:00';
 
-      html += `
-        <div class="card ${estadoClase}">
-          <h2>Puesto ${i}</h2>
-          <p><b>${r.producto}</b></p>
-          <p>Operario: ${r.operario}</p>
-          <div class="tiempo">${minutosTranscurridos(r.inicio)} min</div>
-        </div>
-      `;
-    } else {
-      html += `
-        <div class="card sin">
-          <h2>Puesto ${i}</h2>
-          <p>Sin actividad</p>
-        </div>
-      `;
+    if (primerRegistro) {
+      tiempoGlobal = formatearDuracion(ahora - new Date(primerRegistro.inicio));
     }
+
+    if (activo) {
+      clase = 'produciendo';
+      estadoTexto = 'Producción en proceso';
+      producto = activo.producto || '-';
+      operario = activo.operario || '-';
+      tiempoActual = formatearDuracion(ahora - new Date(activo.inicio));
+    } else if (registrosPuesto.length > 0) {
+      clase = 'parado';
+      estadoTexto = 'Puesto sin lectura en curso';
+    }
+
+    html += `
+      <div class="card ${clase}">
+        <div class="titulo">Puesto ${puesto}</div>
+        <div class="campo"><b>Estado:</b> ${estadoTexto}</div>
+        <div class="campo"><b>Operario:</b> ${operario}</div>
+        <div class="campo"><b>Producto actual:</b> ${producto}</div>
+
+        <div class="contador">
+          Global puesto: ${tiempoGlobal}
+          <div class="sub">Desde la primera lectura registrada</div>
+        </div>
+
+        <div class="contador">
+          Lectura en curso: ${tiempoActual}
+          <div class="sub">Tiempo del producto activo</div>
+        </div>
+      </div>
+    `;
   }
 
   document.getElementById('grid').innerHTML = html;
 }
 
-// refresca cada 2 segundos
-setInterval(cargar, 2000);
+setInterval(cargar, 1000);
 cargar();
 </script>
 
