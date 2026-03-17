@@ -25,7 +25,6 @@
 <script>
 const { createClient } = supabase;
 
-// 🔴 IMPORTANTE: PEGAR BIEN TUS DATOS
 const supabaseClient = createClient(
   "https://gqlftpalwqybyywdplei.supabase.co",
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
@@ -36,7 +35,6 @@ let actual = null;
 let pausaInicio = null;
 let pausaTotal = 0;
 
-// 🔐 LOGIN
 async function login(){
   let legajo = document.getElementById('legajo').value;
 
@@ -49,7 +47,7 @@ async function login(){
   console.log("ERROR:", error);
 
   if(error){
-    alert("Error de conexión con base de datos");
+    alert("Error de conexión");
     return;
   }
 
@@ -61,58 +59,35 @@ async function login(){
   }
 }
 
-// 📦 ESCANEO
 async function scan(){
   let qr = document.getElementById('qr').value;
   let puesto = document.getElementById('puesto').value;
   let ahora = new Date();
 
-  if(!qr){
-    alert("Escaneá un código");
-    return;
-  }
-
-  // cerrar anterior
   if(actual){
     let duracion = (ahora - new Date(actual.inicio))/60000 - pausaTotal;
 
-    await supabaseClient
-      .from('registros')
-      .update({
-        fin: ahora,
-        duracion: duracion
-      })
-      .eq('id', actual.id);
+    await supabaseClient.from('registros').update({
+      fin: ahora,
+      duracion: duracion
+    }).eq('id', actual.id);
   }
 
-  // nuevo registro
-  let { data, error } = await supabaseClient
-    .from('registros')
-    .insert({
-      producto: qr,
-      operario: operario,
-      puesto: puesto,
-      inicio: ahora
-    })
-    .select();
-
-  if(error){
-    alert("Error al guardar");
-    console.log(error);
-    return;
-  }
+  let { data } = await supabaseClient.from('registros').insert({
+    producto: qr,
+    operario: operario,
+    puesto: puesto,
+    inicio: ahora
+  }).select();
 
   actual = data[0];
   pausaTotal = 0;
-  document.getElementById('qr').value = '';
 }
 
-// ⏸ PAUSA
 function pausa(){
   pausaInicio = new Date();
 }
 
-// ▶ REANUDAR
 function reanudar(){
   if(pausaInicio){
     pausaTotal += (new Date() - pausaInicio)/60000;
