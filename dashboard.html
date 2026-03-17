@@ -1,64 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Dashboard Producción</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
+    :root{
+      --bg:#061537;
+      --panel-green:#1f8f53;
+      --panel-gray:#7b8590;
+      --panel-red:#c73b3b;
+      --box-overlay:rgba(255,255,255,0.14);
+      --text:#ffffff;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-      margin: 20px;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
     }
 
     h1 {
       text-align: center;
-      margin-bottom: 25px;
-      font-size: 40px;
+      margin: 10px 0 28px 0;
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 1px;
     }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 15px;
+      gap: 16px;
     }
 
     .card {
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 18px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.35);
-      min-height: 260px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+      min-height: 390px;
+      transition: 0.2s ease;
     }
 
-    .produciendo { background: #198754; }
-    .esperando { background: #6c757d; }
-    .parado { background: #dc3545; }
+    .produciendo { background: var(--panel-green); }
+    .esperando { background: var(--panel-gray); }
+    .parado { background: var(--panel-red); }
+
+    .blink {
+      animation: blinkRed 1s infinite;
+    }
+
+    @keyframes blinkRed {
+      0%   { opacity: 1; transform: scale(1); }
+      50%  { opacity: 0.55; transform: scale(0.985); }
+      100% { opacity: 1; transform: scale(1); }
+    }
 
     .titulo {
       font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 10px;
+      font-weight: 900;
+      margin-bottom: 16px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .campo {
-      margin: 8px 0;
+      margin: 10px 0;
       font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .campo b {
+      font-weight: 900;
     }
 
     .contador {
-      margin-top: 16px;
-      padding: 10px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 10px;
-      font-size: 22px;
+      margin-top: 18px;
+      padding: 14px;
+      background: var(--box-overlay);
+      border-radius: 12px;
+      font-size: 18px;
       font-weight: bold;
+    }
+
+    .contador .valor {
+      display: block;
+      font-size: 22px;
+      font-weight: 900;
+      margin-top: 6px;
     }
 
     .sub {
       font-size: 14px;
-      opacity: 0.9;
-      margin-top: 4px;
+      opacity: 0.92;
+      margin-top: 6px;
+      line-height: 1.3;
+    }
+
+    @media (max-width: 1500px) {
+      .grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
     }
   </style>
 </head>
@@ -77,7 +142,7 @@ const supabaseClient = createClient(
 );
 
 function formatearDuracion(ms) {
-  if (ms < 0) ms = 0;
+  if (!ms || ms < 0) ms = 0;
 
   const totalSeg = Math.floor(ms / 1000);
   const horas = Math.floor(totalSeg / 3600);
@@ -88,62 +153,100 @@ function formatearDuracion(ms) {
 }
 
 async function cargar() {
-  const { data, error } = await supabaseClient
+  const ahora = new Date();
+
+  // Traer registros
+  const { data: registros, error: errorRegistros } = await supabaseClient
     .from('registros')
     .select('*')
     .order('inicio', { ascending: true });
 
-  if (error) {
-    console.log(error);
+  // Traer operarios
+  const { data: operarios, error: errorOperarios } = await supabaseClient
+    .from('operarios')
+    .select('*');
+
+  if (errorRegistros || errorOperarios) {
+    console.log(errorRegistros || errorOperarios);
     return;
   }
 
+  const mapaOperarios = {};
+  operarios.forEach(op => {
+    mapaOperarios[String(op.legajo)] = op.nombre;
+  });
+
   let html = '';
-  const ahora = new Date();
 
   for (let puesto = 1; puesto <= 5; puesto++) {
-    const registrosPuesto = data.filter(r => Number(r.puesto) === puesto);
+    const registrosPuesto = registros.filter(r => Number(r.puesto) === puesto);
 
     const primerRegistro = registrosPuesto.length > 0 ? registrosPuesto[0] : null;
     const activo = registrosPuesto.find(r => r.fin === null);
 
+    // último registro del puesto
+    const ultimoRegistro = registrosPuesto.length > 0 ? registrosPuesto[registrosPuesto.length - 1] : null;
+
     let clase = 'esperando';
+    let blinkClass = '';
     let estadoTexto = 'Esperando lectura';
+    let legajo = '-';
+    let nombreOperario = '-';
     let producto = '-';
-    let operario = '-';
-    let tiempoGlobal = '00:00:00';
-    let tiempoActual = '00:00:00';
+    let motivoParada = '-';
+    let tiempoTotalPuesto = '00:00:00';
+    let tiempoCodigoEnCurso = '00:00:00';
 
     if (primerRegistro) {
-      tiempoGlobal = formatearDuracion(ahora - new Date(primerRegistro.inicio));
+      tiempoTotalPuesto = formatearDuracion(ahora - new Date(primerRegistro.inicio));
     }
 
     if (activo) {
       clase = 'produciendo';
       estadoTexto = 'Producción en proceso';
+      legajo = activo.operario || '-';
+      nombreOperario = mapaOperarios[String(activo.operario)] || '-';
       producto = activo.producto || '-';
-      operario = activo.operario || '-';
-      tiempoActual = formatearDuracion(ahora - new Date(activo.inicio));
-    } else if (registrosPuesto.length > 0) {
+      motivoParada = '-';
+      tiempoCodigoEnCurso = formatearDuracion(ahora - new Date(activo.inicio));
+    } else if (ultimoRegistro && ultimoRegistro.estado === 'parado') {
       clase = 'parado';
-      estadoTexto = 'Puesto sin lectura en curso';
+      blinkClass = 'blink';
+      estadoTexto = 'Puesto detenido';
+      legajo = ultimoRegistro.operario || '-';
+      nombreOperario = mapaOperarios[String(ultimoRegistro.operario)] || '-';
+      producto = ultimoRegistro.producto || '-';
+      motivoParada = ultimoRegistro.motivo_parada || '-';
+      tiempoCodigoEnCurso = '00:00:00';
+    } else if (registrosPuesto.length > 0) {
+      clase = 'esperando';
+      estadoTexto = 'Esperando lectura';
+      legajo = ultimoRegistro?.operario || '-';
+      nombreOperario = mapaOperarios[String(ultimoRegistro?.operario)] || '-';
+      producto = '-';
+      motivoParada = '-';
     }
 
     html += `
-      <div class="card ${clase}">
-        <div class="titulo">Puesto ${puesto}</div>
+      <div class="card ${clase} ${blinkClass}">
+        <div class="titulo">PUESTO ${puesto}</div>
+
         <div class="campo"><b>Estado:</b> ${estadoTexto}</div>
-        <div class="campo"><b>Operario:</b> ${operario}</div>
+        <div class="campo"><b>Legajo:</b> ${legajo}</div>
+        <div class="campo"><b>Operario:</b><br>${nombreOperario}</div>
         <div class="campo"><b>Producto actual:</b> ${producto}</div>
+        <div class="campo"><b>Motivo de parada:</b> ${motivoParada}</div>
 
         <div class="contador">
-          Global puesto: ${tiempoGlobal}
+          Tiempo total del puesto
+          <span class="valor">${tiempoTotalPuesto}</span>
           <div class="sub">Desde la primera lectura registrada</div>
         </div>
 
         <div class="contador">
-          Lectura en curso: ${tiempoActual}
-          <div class="sub">Tiempo del producto activo</div>
+          Tiempo del código en curso
+          <span class="valor">${tiempoCodigoEnCurso}</span>
+          <div class="sub">Tiempo del producto activo actualmente</div>
         </div>
       </div>
     `;
