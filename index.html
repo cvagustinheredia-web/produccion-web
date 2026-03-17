@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Producción</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+
+<h2>Login Operario</h2>
+<input id="legajo" placeholder="Legajo">
+<button onclick="login()">Ingresar</button>
+
+<div id="panel" style="display:none;">
+  <h3>Producción</h3>
+  Puesto: <input id="puesto" value="1"><br><br>
+  QR: <input id="qr"><br>
+  <button onclick="scan()">Escanear</button><br><br>
+
+  <button onclick="pausa()">⏸ PAUSA</button>
+  <button onclick="reanudar()">▶ REANUDAR</button>
+</div>
+
+<script>
+const { createClient } = supabase;
+
+const supabaseClient = createClient(
+  "https://gqlftpalwqybywdplei.supabase.co",
+  "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
+);
+
+let operario = '';
+let actual = null;
+let pausaInicio = null;
+let pausaTotal = 0;
+
+async function login(){
+  let legajo = document.getElementById('legajo').value;
+
+  let { data } = await supabaseClient
+    .from('operarios')
+    .select('*')
+    .eq('legajo', legajo);
+
+  if(data.length){
+    operario = legajo;
+    document.getElementById('panel').style.display = 'block';
+  } else {
+    alert('Legajo inválido');
+  }
+}
+
+async function scan(){
+  let qr = document.getElementById('qr').value;
+  let puesto = document.getElementById('puesto').value;
+  let ahora = new Date();
+
+  if(actual){
+    let duracion = (ahora - actual.inicio)/60000 - pausaTotal;
+
+    await supabaseClient.from('registros').update({
+      fin: ahora,
+      duracion: duracion
+    }).eq('id', actual.id);
+  }
+
+  let { data } = await supabaseClient.from('registros').insert({
+    producto: qr,
+    operario: operario,
+    puesto: puesto,
+    inicio: ahora
+  }).select();
+
+  actual = data[0];
+  pausaTotal = 0;
+}
+
+function pausa(){
+  pausaInicio = new Date();
+}
+
+function reanudar(){
+  if(pausaInicio){
+    pausaTotal += (new Date() - pausaInicio)/60000;
+    pausaInicio = null;
+  }
+}
+</script>
+
+</body>
+</html>
