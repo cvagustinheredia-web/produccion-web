@@ -1,156 +1,356 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Producción</title>
+  <title>Linea Motor MOIE</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-      background: #f4f6f8;
-      color: #222;
+    :root{
+      --bg:#10151b;
+      --panel:#1a222c;
+      --panel-2:#222c38;
+      --text:#f3f6fa;
+      --muted:#aeb8c4;
+      --border:#324150;
+      --blue:#2f80ed;
+      --green:#1faa59;
+      --red:#d64545;
+      --yellow:#d9a400;
+      --gray:#6b7682;
+      --white:#ffffff;
     }
 
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      max-width: 780px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+    *{
+      box-sizing:border-box;
     }
 
-    h2, h3 {
-      margin-bottom: 10px;
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,#0f141a 0%, #151d26 100%);
+      color:var(--text);
+      padding:24px;
     }
 
-    input, button {
-      padding: 10px 12px;
-      font-size: 16px;
-      margin: 5px 0;
-      border-radius: 8px;
-      border: 1px solid #cfd6dc;
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:20px;
     }
 
-    #legajo, #qr {
-      width: 320px;
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:22px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
     }
 
-    .puestos, .paradas {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-      margin-bottom: 10px;
+    .header-title{
+      font-size:34px;
+      font-weight:800;
+      letter-spacing:.5px;
+      margin:0 0 8px 0;
+      color:var(--white);
     }
 
-    .puesto-btn, .parada-btn {
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #dbe4ea;
-      padding: 10px 14px;
+    .header-subtitle{
+      color:var(--muted);
+      font-size:14px;
+      margin-bottom:10px;
     }
 
-    .puesto-btn.activo {
-      background: #6ea8fe;
-      color: white;
-      font-weight: bold;
+    .section-title{
+      font-size:28px;
+      font-weight:800;
+      margin:0 0 6px 0;
+      color:var(--white);
     }
 
-    .parada-btn {
-      background: #f1f3f5;
+    .mini-title{
+      font-size:20px;
+      font-weight:800;
+      margin:18px 0 10px 0;
+      color:var(--white);
+      text-transform:uppercase;
+      letter-spacing:.5px;
     }
 
-    .estado {
-      margin-top: 18px;
-      padding: 14px 18px;
-      border-radius: 10px;
-      font-weight: bold;
-      font-size: 18px;
-      display: inline-block;
-      min-width: 260px;
-      text-align: center;
-      color: white;
+    .label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:8px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
     }
 
-    .esperando { background: #6c757d; }
-    .produciendo { background: #198754; }
-    .parado { background: #dc3545; }
-
-    .info {
-      margin-top: 16px;
-      font-size: 17px;
-      line-height: 1.8;
+    input{
+      width:100%;
+      max-width:360px;
+      background:var(--panel-2);
+      color:var(--white);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px 16px;
+      font-size:20px;
+      outline:none;
     }
 
-    .bloqueado {
-      opacity: 0.6;
-      pointer-events: none;
+    input:focus{
+      border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(47,128,237,.18);
     }
 
-    .subtitulo {
-      font-size: 22px;
-      font-weight: bold;
-      margin-top: 18px;
-      margin-bottom: 8px;
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
     }
 
-    .ayuda {
-      color: #666;
-      font-size: 14px;
-      margin-top: 2px;
+    .btn{
+      border:none;
+      border-radius:12px;
+      padding:14px 18px;
+      cursor:pointer;
+      font-size:16px;
+      font-weight:700;
+      transition:.15s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.05);
+    }
+
+    .btn-primary{
+      background:var(--blue);
+      color:white;
+    }
+
+    .btn-success{
+      background:var(--green);
+      color:white;
+    }
+
+    .btn-danger{
+      background:var(--red);
+      color:white;
+    }
+
+    .btn-gray{
+      background:#425160;
+      color:white;
+    }
+
+    .btn-puesto{
+      min-width:110px;
+      background:#354252;
+      color:#dce5ee;
+    }
+
+    .btn-puesto.activo{
+      background:var(--blue);
+      color:white;
+      box-shadow:0 0 0 3px rgba(47,128,237,.2);
+    }
+
+    .grupo-botones{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .bloqueado{
+      pointer-events:none;
+      opacity:.65;
+    }
+
+    .status-panel{
+      display:flex;
+      flex-wrap:wrap;
+      gap:16px;
+      margin-top:18px;
+    }
+
+    .status-box{
+      min-width:280px;
+      padding:18px 20px;
+      border-radius:16px;
+      font-size:22px;
+      font-weight:800;
+      text-align:center;
+      color:white;
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    .esperando{ background:linear-gradient(180deg,#66707c,#59636f); }
+    .produciendo{ background:linear-gradient(180deg,#1fb263,#179451); }
+    .parado{ background:linear-gradient(180deg,#df4e4e,#b93939); }
+
+    .info-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .info-card{
+      background:var(--panel-2);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+    }
+
+    .info-card .k{
+      color:var(--muted);
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      margin-bottom:8px;
+    }
+
+    .info-card .v{
+      font-size:24px;
+      font-weight:800;
+      color:var(--white);
+      word-break:break-word;
+    }
+
+    .ayuda{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:8px;
+    }
+
+    .nombre-operario{
+      font-size:22px;
+      font-weight:800;
+      margin-top:12px;
+      color:#d9e7f5;
+    }
+
+    .linea{
+      height:1px;
+      background:var(--border);
+      margin:18px 0;
+    }
+
+    .continuar-wrap{
+      margin-top:14px;
+      display:none;
+    }
+
+    .continuar-wrap.show{
+      display:block;
+    }
+
+    .tag{
+      display:inline-block;
+      background:#24303d;
+      border:1px solid var(--border);
+      color:#d9e3ee;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    @media (max-width:700px){
+      .header-title{font-size:28px;}
+      .section-title{font-size:24px;}
+      .mini-title{font-size:18px;}
+      .status-box{font-size:19px; min-width:100%;}
+      input{max-width:100%;}
     }
   </style>
 </head>
 <body>
+  <div class="container">
 
-  <div class="card">
-    <h2>INGRESE SU LEGAJO</h2>
-    <input id="legajo" placeholder="Legajo" oninput="buscarOperario()">
-    <p id="nombreOperario"></p>
-    <button onclick="login()">Ingresar</button>
-  </div>
+    <div class="card">
+      <h1 class="header-title">INGRESE SU LEGAJO</h1>
+      <div class="header-subtitle">Identificación de operario para iniciar la estación</div>
 
-  <div id="panel" class="card" style="display:none;">
-    <h3>Producción</h3>
+      <label class="label" for="legajo">Legajo</label>
+      <input id="legajo" placeholder="Ingresar legajo" oninput="buscarOperario()">
 
-    <p id="operarioActivo"></p>
+      <div id="nombreOperario" class="nombre-operario"></div>
 
-    <div>
-      <b>Seleccionar puesto</b>
-      <div id="puestos" class="puestos">
-        <button class="puesto-btn" onclick="seleccionarPuesto(1)">Puesto 1</button>
-        <button class="puesto-btn" onclick="seleccionarPuesto(2)">Puesto 2</button>
-        <button class="puesto-btn" onclick="seleccionarPuesto(3)">Puesto 3</button>
-        <button class="puesto-btn" onclick="seleccionarPuesto(4)">Puesto 4</button>
-        <button class="puesto-btn" onclick="seleccionarPuesto(5)">Puesto 5</button>
+      <div style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="login()">Ingresar</button>
       </div>
-      <p id="puestoSeleccionadoTexto"><b>Puesto seleccionado:</b> Ninguno</p>
     </div>
 
-    <div class="subtitulo">ESCANEAR QR</div>
-    <input id="qr" placeholder="Escanear código QR" onkeydown="capturarEnterQR(event)">
-    <div class="ayuda">Al leer con la pistola, se registra automáticamente al presionar Enter.</div>
+    <div id="panel" class="card" style="display:none;">
+      <h2 class="section-title">Linea Motor MOIE</h2>
+      <div class="header-subtitle">Control de producción y paradas de puesto</div>
 
-    <div class="subtitulo" style="margin-top:24px;">PARADA DE PUESTO</div>
-    <div class="paradas">
-      <button class="parada-btn" onclick="registrarParada('Falta material')">Falta material</button>
-      <button class="parada-btn" onclick="registrarParada('Calidad')">Calidad</button>
-      <button class="parada-btn" onclick="registrarParada('Descanso (Desayuno)')">Descanso (Desayuno)</button>
-      <button class="parada-btn" onclick="registrarParada('Descanso (Almuerzo)')">Descanso (Almuerzo)</button>
-      <button class="parada-btn" onclick="registrarParada('Ing.Procesos')">Ing.Procesos</button>
-      <button class="parada-btn" onclick="registrarParada('Logistica')">Logistica</button>
+      <div class="row" style="justify-content:space-between; gap:16px;">
+        <div class="tag" id="operarioActivo">Operario: -</div>
+        <div class="tag" id="puestoSeleccionadoTexto">Puesto seleccionado: Ninguno</div>
+      </div>
+
+      <div class="linea"></div>
+
+      <div class="mini-title">Seleccionar puesto</div>
+      <div id="puestos" class="grupo-botones">
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(1)">Puesto 1</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(2)">Puesto 2</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(3)">Puesto 3</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(4)">Puesto 4</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(5)">Puesto 5</button>
+      </div>
+
+      <div class="linea"></div>
+
+      <div class="mini-title">Escanear QR</div>
+      <label class="label" for="qr">Lectura del producto</label>
+      <input id="qr" placeholder="Escanear código QR" onkeydown="capturarEnterQR(event)">
+      <div class="ayuda">La lectora dispara la carga automáticamente al enviar Enter.</div>
+
+      <div class="linea"></div>
+
+      <div class="mini-title">Parada de puesto</div>
+      <div class="grupo-botones">
+        <button class="btn btn-gray" onclick="registrarParada('Falta material')">Falta material</button>
+        <button class="btn btn-gray" onclick="registrarParada('Calidad')">Calidad</button>
+        <button class="btn btn-gray" onclick="registrarParada('Descanso (Desayuno)')">Descanso (Desayuno)</button>
+        <button class="btn btn-gray" onclick="registrarParada('Descanso (Almuerzo)')">Descanso (Almuerzo)</button>
+        <button class="btn btn-gray" onclick="registrarParada('Ing.Procesos')">Ing.Procesos</button>
+        <button class="btn btn-gray" onclick="registrarParada('Logistica')">Logistica</button>
+      </div>
+
+      <div id="continuarWrap" class="continuar-wrap">
+        <button class="btn btn-success" onclick="continuarProduccion()">CONTINUAR PRODUCCIÓN</button>
+      </div>
+
+      <div class="status-panel">
+        <div id="estadoProduccion" class="status-box esperando">Esperando lectura</div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="k">Producto en curso</div>
+          <div class="v" id="productoActual">-</div>
+        </div>
+
+        <div class="info-card">
+          <div class="k">Inicio lectura actual</div>
+          <div class="v" id="inicioActual">-</div>
+        </div>
+
+        <div class="info-card">
+          <div class="k">Última parada</div>
+          <div class="v" id="ultimaParada">-</div>
+        </div>
+      </div>
     </div>
 
-    <div id="estadoProduccion" class="estado esperando">Esperando lectura</div>
-
-    <div class="info">
-      <p><b>Producto en curso:</b> <span id="productoActual">-</span></p>
-      <p><b>Inicio lectura actual:</b> <span id="inicioActual">-</span></p>
-      <p><b>Última parada:</b> <span id="ultimaParada">-</span></p>
-    </div>
   </div>
 
 <script>
@@ -164,9 +364,12 @@ const supabaseClient = createClient(
 let operario = '';
 let nombre = '';
 let actual = null;
-let puestoSeleccionado = localStorage.getItem("puesto_fijo") || null;
+let puestoSeleccionado = null;
+let productoEnCurso = null;
+let produccionPausada = false;
+let ultimaParada = null;
 
-// Busca nombre al escribir legajo
+// Buscar nombre del operario
 async function buscarOperario() {
   const legajo = document.getElementById('legajo').value.trim();
 
@@ -192,7 +395,7 @@ async function buscarOperario() {
   }
 }
 
-// Login operario
+// Login
 async function login() {
   const legajo = document.getElementById('legajo').value.trim();
 
@@ -214,61 +417,33 @@ async function login() {
     document.getElementById('operarioActivo').innerText =
       "Operario: " + nombre + " (" + operario + ")";
 
-    await aplicarPuestoGuardado();
+    document.getElementById('qr').focus();
   } else {
     alert('Legajo inválido');
   }
 }
 
-// Selección única de puesto
+// Selección manual de puesto, una sola vez
 function seleccionarPuesto(num) {
-  if (puestoSeleccionado) return;
+  if (puestoSeleccionado !== null) return;
 
-  puestoSeleccionado = String(num);
-  localStorage.setItem("puesto_fijo", puestoSeleccionado);
+  puestoSeleccionado = Number(num);
 
-  aplicarPuestoGuardado();
-}
-
-async function aplicarPuestoGuardado() {
-  const botones = document.querySelectorAll('.puesto-btn');
+  const botones = document.querySelectorAll('.btn-puesto');
   botones.forEach(btn => btn.classList.remove('activo'));
+  botones[num - 1].classList.add('activo');
 
-  if (puestoSeleccionado) {
-    botones[Number(puestoSeleccionado) - 1].classList.add('activo');
-    document.getElementById('puestoSeleccionadoTexto').innerHTML =
-      "<b>Puesto seleccionado:</b> " + puestoSeleccionado;
+  document.getElementById('puestoSeleccionadoTexto').innerText =
+    "Puesto seleccionado: " + puestoSeleccionado;
 
-    document.getElementById('puestos').classList.add('bloqueado');
+  document.getElementById('puestos').classList.add('bloqueado');
 
-    // busca registro abierto del puesto
-    const { data, error } = await supabaseClient
-      .from('registros')
-      .select('*')
-      .eq('puesto', Number(puestoSeleccionado))
-      .is('fin', null)
-      .order('inicio', { ascending: false })
-      .limit(1);
-
-    if (!error && data && data.length > 0) {
-      actual = data[0];
-      setEstado("produciendo");
-      document.getElementById('productoActual').innerText = limpiarProducto(actual.producto || '-');
-      document.getElementById('inicioActual').innerText = formatearFecha(actual.inicio);
-    } else {
-      actual = null;
-      setEstado("esperando");
-      document.getElementById('productoActual').innerText = '-';
-      document.getElementById('inicioActual').innerText = '-';
-    }
-
-    setTimeout(() => {
-      document.getElementById('qr').focus();
-    }, 100);
-  }
+  setTimeout(() => {
+    document.getElementById('qr').focus();
+  }, 100);
 }
 
-// Captura enter del scanner
+// Capturar Enter del QR
 function capturarEnterQR(event) {
   if (event.key === 'Enter') {
     event.preventDefault();
@@ -276,18 +451,19 @@ function capturarEnterQR(event) {
   }
 }
 
-// Limpia producto: si empieza con 0, elimina solo el primer 0
+// Si empieza con 0, elimina solo el primero
 function limpiarProducto(valor) {
   if (!valor) return '';
-  if (valor.startsWith('0')) {
-    return valor.substring(1);
-  }
-  return valor;
+  return valor.startsWith('0') ? valor.substring(1) : valor;
+}
+
+function formatearFecha(fecha) {
+  return new Date(fecha).toLocaleString();
 }
 
 function setEstado(tipo) {
   const estado = document.getElementById('estadoProduccion');
-  estado.className = 'estado';
+  estado.className = 'status-box';
 
   if (tipo === 'produciendo') {
     estado.classList.add('produciendo');
@@ -301,11 +477,7 @@ function setEstado(tipo) {
   }
 }
 
-function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleString();
-}
-
-// Lee QR
+// Leer QR
 async function scan() {
   const qrInput = document.getElementById('qr');
   let qr = qrInput.value.trim();
@@ -315,14 +487,12 @@ async function scan() {
     return;
   }
 
-  if (!qr) {
-    return;
-  }
+  if (!qr) return;
 
   qr = limpiarProducto(qr);
   const ahora = new Date();
 
-  // cierra lectura anterior
+  // Si había una producción activa o continuada, la cerramos
   if (actual) {
     const { error: errorCierre } = await supabaseClient
       .from('registros')
@@ -339,15 +509,16 @@ async function scan() {
     }
   }
 
-  // abre lectura nueva
+  // Abrimos nueva lectura con el nuevo QR
   const { data, error } = await supabaseClient
     .from('registros')
     .insert({
       producto: qr,
       operario: operario,
-      puesto: Number(puestoSeleccionado),
+      puesto: puestoSeleccionado,
       inicio: ahora,
-      estado: "produciendo"
+      estado: "produciendo",
+      motivo_parada: null
     })
     .select();
 
@@ -358,38 +529,41 @@ async function scan() {
   }
 
   actual = data[0];
+  productoEnCurso = qr;
+  produccionPausada = false;
+  ultimaParada = null;
 
-  setEstado("produciendo");
+  document.getElementById('continuarWrap').classList.remove('show');
   document.getElementById('productoActual').innerText = qr;
   document.getElementById('inicioActual').innerText = formatearFecha(ahora);
+  document.getElementById('ultimaParada').innerText = '-';
+  setEstado('produciendo');
+
   qrInput.value = '';
   qrInput.focus();
 }
 
-// Registra parada con motivo
+// Registrar parada
 async function registrarParada(motivo) {
   if (!puestoSeleccionado) {
     alert("Primero seleccioná un puesto");
     return;
   }
 
-  const ahora = new Date();
-  document.getElementById('ultimaParada').innerText = motivo;
-
   if (!actual) {
-    setEstado("parado");
+    alert("No hay producción en curso para detener");
     return;
   }
 
-  const updateData = {
-    fin: ahora,
-    estado: "parado",
-    motivo_parada: motivo
-  };
+  const ahora = new Date();
 
   const { error } = await supabaseClient
     .from('registros')
-    .update(updateData)
+    .update({
+      fin: ahora,
+      estado: "parado",
+      motivo_parada: motivo
+    })
     .eq('id', actual.id);
 
   if (error) {
@@ -398,19 +572,55 @@ async function registrarParada(motivo) {
     return;
   }
 
+  ultimaParada = motivo;
+  produccionPausada = true;
   actual = null;
-  document.getElementById('productoActual').innerText = '-';
-  document.getElementById('inicioActual').innerText = '-';
-  setEstado("esperando");
+
+  document.getElementById('ultimaParada').innerText = motivo;
+  setEstado('parado');
+  document.getElementById('continuarWrap').classList.add('show');
 }
 
-// Al abrir página
-window.onload = async function() {
-  if (puestoSeleccionado) {
-    await aplicarPuestoGuardado();
+// Continuar misma producción
+async function continuarProduccion() {
+  if (!puestoSeleccionado) {
+    alert("Primero seleccioná un puesto");
+    return;
   }
-};
-</script>
 
+  if (!productoEnCurso) {
+    alert("No hay producto previo para continuar");
+    return;
+  }
+
+  const ahora = new Date();
+
+  const { data, error } = await supabaseClient
+    .from('registros')
+    .insert({
+      producto: productoEnCurso,
+      operario: operario,
+      puesto: puestoSeleccionado,
+      inicio: ahora,
+      estado: "produciendo",
+      motivo_parada: null
+    })
+    .select();
+
+  if (error) {
+    alert("Error al continuar producción");
+    console.log(error);
+    return;
+  }
+
+  actual = data[0];
+  produccionPausada = false;
+
+  document.getElementById('inicioActual').innerText = formatearFecha(ahora);
+  document.getElementById('continuarWrap').classList.remove('show');
+  setEstado('produciendo');
+  document.getElementById('qr').focus();
+}
+</script>
 </body>
 </html>
