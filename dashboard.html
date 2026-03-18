@@ -150,47 +150,6 @@ h1{
   border-radius:10px;
   font-size:13px;
 }
-
-@media (max-width: 1700px){
-  .grid{
-    grid-template-columns: repeat(3,1fr);
-  }
-}
-
-@media (max-width: 1000px){
-  .grid{
-    grid-template-columns: repeat(2,1fr);
-  }
-}
-
-@media (max-width: 700px){
-  .grid{
-    grid-template-columns: 1fr;
-  }
-
-  .header{
-    flex-direction:column;
-    gap:12px;
-  }
-
-  .header-left,
-  .header-center,
-  .header-right{
-    width:100%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-  }
-
-  .subtitulo-row{
-    justify-content:center;
-  }
-
-  .subtitulo{
-    text-align:center;
-  }
-}
 </style>
 </head>
 
@@ -298,11 +257,12 @@ async function cargar(){
 
     const regsDesdeReset = regs.filter(x => {
       const inicio = parseFecha(x.inicio);
-      return !resetDesde || (inicio && inicio >= resetDesde);
+      if (!inicio) return false;
+      return !resetDesde || inicio >= resetDesde;
     });
 
-    const activo = regsDesdeReset.find(x => x.fin == null && (x.estado || '').toLowerCase() === 'produciendo');
-    const paradaActiva = regsDesdeReset.find(x => x.fin == null && (x.estado || '').toLowerCase() === 'parado');
+    const activoProduccion = regsDesdeReset.find(x => x.fin == null && (x.estado || '').toLowerCase() === 'produciendo');
+    const activoParada = regsDesdeReset.find(x => x.fin == null && (x.estado || '').toLowerCase() === 'parado');
     const ultimo = regsDesdeReset.length ? regsDesdeReset[regsDesdeReset.length - 1] : null;
     const primero = regsDesdeReset.length ? regsDesdeReset[0] : null;
 
@@ -340,25 +300,26 @@ async function cargar(){
       }
     });
 
-    if (activo) {
+    if (activoProduccion) {
       estado = "PRODUCCION";
       clase = "produciendo";
-      legajo = activo.operario || "-";
-      nombre = mapa[String(activo.operario)] || "-";
-      producto = activo.producto || "-";
-      tiempoCodigoMs = Math.max(Date.now() - parseFecha(activo.inicio).getTime(), 0);
-    } else if (paradaActiva) {
+      legajo = activoProduccion.operario || "-";
+      nombre = mapa[String(activoProduccion.operario)] || "-";
+      producto = activoProduccion.producto || "-";
+      tiempoCodigoMs = Math.max(Date.now() - parseFecha(activoProduccion.inicio).getTime(), 0);
+    } else if (activoParada) {
       estado = "PARADO";
       clase = "parado";
       blink = "blink";
-      legajo = paradaActiva.operario || "-";
-      nombre = mapa[String(paradaActiva.operario)] || "-";
-      producto = paradaActiva.producto || "-";
-      motivo = paradaActiva.motivo_parada || "-";
+      legajo = activoParada.operario || "-";
+      nombre = mapa[String(activoParada.operario)] || "-";
+      producto = activoParada.producto || "-";
+      motivo = activoParada.motivo_parada || "-";
       tiempoCodigoMs = 0;
     } else if (ultimo) {
       legajo = ultimo.operario || "-";
       nombre = mapa[String(ultimo.operario)] || "-";
+      producto = ultimo.producto || "-";
     }
 
     let objetivo = null;
@@ -412,11 +373,12 @@ function iniciar(){
 }
 
 async function reiniciarDashboard(){
-  const ahora = new Date().toISOString();
+  const ahora = new Date();
+  const argentinaIso = new Date(ahora.getTime() - (3 * 60 * 60 * 1000)).toISOString().slice(0,19);
 
   const { error } = await supabaseClient
     .from('dashboard_control')
-    .update({ reset_desde: ahora })
+    .update({ reset_desde: argentinaIso })
     .eq('id', 1);
 
   if(error){
