@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KPI Líneas</title>
+<title>MOIE</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
@@ -14,6 +14,7 @@
   --orange:#d9821f;
   --overlay:rgba(255,255,255,0.12);
 }
+
 body{
   margin:0;
   padding:20px;
@@ -21,62 +22,78 @@ body{
   background:var(--bg);
   color:white;
 }
+
 .header{
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
   margin-bottom:8px;
 }
-.header-left{width:220px}
-.header-center{flex:1;text-align:center}
+
+.header-left{ width:220px; }
+.header-center{ flex:1; text-align:center; }
 .header-right{
   width:220px;
   display:flex;
   justify-content:flex-end;
   align-items:flex-start;
 }
-.header img{height:70px}
+
+.header img{ height:70px; }
+
 h1{
   font-size:48px;
   margin:0;
   font-weight:900;
   text-align:center;
 }
+
 .subtitulo-row{
   margin-top:10px;
   display:flex;
   justify-content:flex-start;
   align-items:center;
 }
+
 .subtitulo{
   text-align:left;
   font-size:24px;
   font-weight:700;
 }
+
 .linea-titulo{
   margin:26px 0 10px;
   font-size:28px;
   font-weight:900;
   text-transform:uppercase;
 }
+
 .grid{
   display:grid;
   gap:14px;
 }
+
 .grid.motor{grid-template-columns:repeat(6,1fr)}
 .grid.viesa{grid-template-columns:repeat(4,1fr)}
 .grid.varios{grid-template-columns:repeat(7,1fr)}
+
 .card{
   padding:16px;
   border-radius:16px;
   min-height:430px;
 }
-.produciendo{background:var(--green)}
-.esperando{background:var(--gray)}
-.parado{background:var(--red)}
-.turno{background:var(--orange)}
-.blink{animation:blink 1s infinite}
-@keyframes blink{50%{opacity:0.4}}
+
+.produciendo{ background:var(--green); }
+.esperando{ background:var(--gray); }
+.parado{ background:var(--red); }
+.turno{ background:var(--orange); }
+
+.blink{ animation:blink 1s infinite; }
+
+@keyframes blink{
+  50%{ opacity:0.4; }
+}
+
 .titulo{
   text-align:center;
   font-size:24px;
@@ -84,30 +101,36 @@ h1{
   margin-bottom:10px;
   text-transform:uppercase;
 }
+
 .campo{
   font-size:15px;
   margin:6px 0;
   text-transform:uppercase;
 }
+
 .contador{
   margin-top:12px;
   background:var(--overlay);
   padding:10px;
   border-radius:10px;
 }
+
 .valor{
   font-size:20px;
   font-weight:900;
 }
-.ok{color:#00ff88}
-.mal{color:#ff3b3b}
+
+.ok{ color:#00ff88; }
+.mal{ color:#ff3b3b; }
+
 .botones{
   position:fixed;
   bottom:20px;
-  left:20px;
+  left:170px;
   display:flex;
   gap:10px;
 }
+
 .btn{
   padding:12px 18px;
   border:none;
@@ -116,8 +139,10 @@ h1{
   cursor:pointer;
   color:white;
 }
-.refresh{background:#2f80ed}
-.reset{background:#ff8a00}
+
+.refresh{ background:#2f80ed; }
+.reset{ background:#ff8a00; }
+
 .info-reset{
   position:fixed;
   bottom:20px;
@@ -127,10 +152,29 @@ h1{
   border-radius:10px;
   font-size:13px;
 }
+
+.back-kpi{
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  z-index:999;
+}
+
+.back-kpi a{
+  display:inline-block;
+  background:#2f80ed;
+  color:white;
+  text-decoration:none;
+  padding:12px 18px;
+  border-radius:10px;
+  font-weight:800;
+}
+
 @media (max-width:1600px){
   .grid.motor,.grid.varios{grid-template-columns:repeat(3,1fr)}
   .grid.viesa{grid-template-columns:repeat(2,1fr)}
 }
+
 @media (max-width:900px){
   .grid.motor,.grid.viesa,.grid.varios{grid-template-columns:1fr}
 }
@@ -162,6 +206,10 @@ h1{
 <div class="linea-titulo">LÍNEA VARIOS</div>
 <div class="grid varios" id="grid-varios"></div>
 
+<div class="back-kpi">
+  <a href="dashboard_kpi.html">← VOLVER A KPI INDUSTRIALES</a>
+</div>
+
 <div class="botones">
   <button class="btn refresh" onclick="cargar()">ACTUALIZAR</button>
   <button class="btn reset" onclick="reiniciarDashboard()">REINICIAR</button>
@@ -177,7 +225,7 @@ const supabaseClient = supabase.createClient(
 
 const CONFIG = {
   "LINEA MOTOR": { puestos: [1,2,3,4,5,6], objetivos: {1:13,2:13,3:13,4:13,5:25} },
-  "LINEA VIESA": { puestos: [1,2,3,4], objetivos: {} },
+  "LINEA VIESA": { puestos: [1,2,3,4], objetivos: {1:13,2:13,3:13,4:13} },
   "LINEA VARIOS": { puestos: [1,2,3,4,5,6,7], objetivos: {} }
 };
 
@@ -210,6 +258,23 @@ function format(ms){
   const minutos = Math.floor((totalSeg % 3600) / 60);
   const segundos = totalSeg % 60;
   return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
+}
+
+function piezasProgramadas(linea, puesto, tiempoTotalMs){
+  let objetivoMin = null;
+
+  if (linea === 'LINEA MOTOR' && [1,2,3,4].includes(Number(puesto))) {
+    objetivoMin = 13;
+  }
+
+  if (linea === 'LINEA VIESA' && [1,2,3,4].includes(Number(puesto))) {
+    objetivoMin = 13;
+  }
+
+  if (!objetivoMin || !tiempoTotalMs || tiempoTotalMs <= 0) return 0;
+
+  const objetivoMs = objetivoMin * 60 * 1000;
+  return Math.floor(tiempoTotalMs / objetivoMs);
 }
 
 async function obtenerControl(){
@@ -276,7 +341,10 @@ function renderLinea(linea, regsLinea, mapaOperarios){
           <div class="campo"><b>OPERARIO:</b> -</div>
           <div class="campo"><b>PRODUCTO:</b> -</div>
           <div class="campo"><b>MOTIVO:</b> -</div>
-          <div class="campo"><b>PIEZAS:</b> 0</div>
+          <div class="campo" style="display:flex;justify-content:space-between;gap:10px;">
+            <span><b>PIEZAS FABRICADAS:</b> 0</span>
+            <span><b>PIEZAS PROGRAMADAS:</b> 0</span>
+          </div>
           <div class="contador">TIEMPO TOTAL<div class="valor">00:00:00</div></div>
           <div class="contador">CODIGO EN CURSO<div class="valor">00:00:00</div></div>
           <div class="contador">TIEMPO PARADA<div class="valor">00:00:00</div></div>
@@ -310,15 +378,14 @@ function renderLinea(linea, regsLinea, mapaOperarios){
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
 
-    if (activoProduccion) {
-      const inicioActivo = parseFecha(activoProduccion.inicio);
-      if (inicioActivo) tiempoCodigoMs = Math.max(Date.now() - inicioActivo.getTime(), 0);
-    } else if (ultimaLectura) {
+    if (ultimaLectura) {
       const inicioLectura = parseFecha(ultimaLectura.inicio);
       if (inicioLectura) {
         if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
           const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-          if (finTurno) tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
+          if (finTurno) {
+            tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
+          }
         } else {
           tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
         }
@@ -367,7 +434,10 @@ function renderLinea(linea, regsLinea, mapaOperarios){
         <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
         <div class="campo"><b>PRODUCTO:</b> ${producto}</div>
         <div class="campo"><b>MOTIVO:</b> ${motivo}</div>
-        <div class="campo"><b>PIEZAS:</b> ${piezas}</div>
+        <div class="campo" style="display:flex;justify-content:space-between;gap:10px;">
+          <span><b>PIEZAS FABRICADAS:</b> ${piezas}</span>
+          <span><b>PIEZAS PROGRAMADAS:</b> ${piezasProgramadas(linea, p, tiempoTotalMs)}</span>
+        </div>
 
         <div class="contador">TIEMPO TOTAL<div class="valor">${format(tiempoTotalMs)}</div></div>
         <div class="contador">CODIGO EN CURSO<div class="valor">${format(tiempoCodigoMs)} ${estadoTiempo}</div></div>
