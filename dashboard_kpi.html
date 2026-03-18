@@ -431,7 +431,7 @@ function donutSvg(estados){
     return `
       <svg class="donut" viewBox="0 0 42 42">
         <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#d8e1ea" stroke-width="6"></circle>
-        <text x="21" y="22" text-anchor="middle">0</text>
+        <text x="21" y="21" text-anchor="middle" dominant-baseline="middle">0</text>
       </svg>
     `;
   }
@@ -456,7 +456,7 @@ function donutSvg(estados){
         stroke="#8391a0" stroke-width="6"
         stroke-dasharray="${p3} ${100-p3}" stroke-dashoffset="${25-p1-p2}"></circle>
 
-      <text x="21" y="22" text-anchor="middle">${total}</text>
+      <text x="21" y="21" text-anchor="middle" dominant-baseline="middle">${total}</text>
     </svg>
   `;
 }
@@ -503,16 +503,39 @@ function renderSectorCard(nombre, kpi){
 }
 
 function top5Paradas(regs){
-  const conteo = {};
+  const mapa = {};
 
   regs.forEach(r => {
     if ((r.estado || '').toLowerCase() !== 'parado') return;
+
     const motivo = (r.motivo_parada || 'SIN MOTIVO').toUpperCase();
-    conteo[motivo] = (conteo[motivo] || 0) + 1;
+    const inicio = parseFecha(r.inicio);
+    const fin = parseFecha(r.fin);
+
+    let duracion = 0;
+    if (inicio) {
+      if (fin) duracion = Math.max(fin.getTime() - inicio.getTime(), 0);
+      else duracion = Math.max(Date.now() - inicio.getTime(), 0);
+    }
+
+    if (!mapa[motivo]) {
+      mapa[motivo] = {
+        cantidad: 0,
+        tiempoMs: 0
+      };
+    }
+
+    mapa[motivo].cantidad += 1;
+    mapa[motivo].tiempoMs += duracion;
   });
 
-  return Object.entries(conteo)
-    .sort((a,b) => b[1] - a[1])
+  return Object.entries(mapa)
+    .map(([motivo, datos]) => ({
+      motivo,
+      cantidad: datos.cantidad,
+      tiempoMs: datos.tiempoMs
+    }))
+    .sort((a,b) => b.cantidad - a.cantidad)
     .slice(0,5);
 }
 
@@ -550,7 +573,7 @@ function renderLineaCard(nombre, regsLinea){
     : `<div class="small-note">Sin piezas registradas</div>`;
 
   const htmlParadas = paradas.length
-    ? `<ul class="lista">${paradas.map(x => `<li>${x[0]}: ${x[1]}</li>`).join('')}</ul>`
+    ? `<ul class="lista">${paradas.map(x => `<li>${x.motivo}: ${x.cantidad} | ${format(x.tiempoMs)}</li>`).join('')}</ul>`
     : `<div class="small-note">Sin paradas registradas</div>`;
 
   return `
@@ -574,6 +597,11 @@ function renderLineaCard(nombre, regsLinea){
         <div class="kpi">
           <div class="label">PUESTOS PRODUCIENDO</div>
           <div class="value">${kpi.puestosProduciendo}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="label">PUESTOS PARADOS</div>
+          <div class="value">${kpi.puestosParados}</div>
         </div>
 
         <div class="kpi">
