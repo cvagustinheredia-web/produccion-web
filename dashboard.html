@@ -126,9 +126,11 @@ h1{
 .botones{
   position:fixed;
   bottom:20px;
-  left:170px;
+  right:20px;
   display:flex;
   gap:10px;
+  align-items:center;
+  z-index:999;
 }
 
 .btn{
@@ -140,13 +142,9 @@ h1{
   color:white;
 }
 
-.refresh{ background:#2f80ed; }
 .reset{ background:#ff8a00; }
 
 .info-reset{
-  position:fixed;
-  bottom:20px;
-  right:20px;
   background:rgba(255,255,255,0.12);
   padding:10px 14px;
   border-radius:10px;
@@ -177,6 +175,12 @@ h1{
 
 @media (max-width:900px){
   .grid.motor,.grid.viesa,.grid.varios{grid-template-columns:1fr}
+  .botones{
+    left:20px;
+    right:20px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
 }
 </style>
 </head>
@@ -211,11 +215,9 @@ h1{
 </div>
 
 <div class="botones">
-  <button class="btn refresh" onclick="cargar()">ACTUALIZAR</button>
-  <button class="btn reset" onclick="reiniciarDashboard()">REINICIAR</button>
+  <button class="btn reset" onclick="reiniciarDashboard()">REINICIAR GLOBAL</button>
+  <div class="info-reset" id="infoReset">REINICIO GLOBAL: SIN CONFIGURAR</div>
 </div>
-
-<div class="info-reset" id="infoReset">REINICIO GLOBAL: SIN CONFIGURAR</div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -267,8 +269,8 @@ function piezasProgramadas(linea, puesto, tiempoTotalMs){
     objetivoMin = 13;
   }
 
-  if (linea === 'LINEA VIESA' && [1,2,3,4].includes(Number(puesto))) {
-    objetivoMin = 13;
+  if (linea === 'LINEA MOTOR' && Number(puesto) === 5) {
+    objetivoMin = 25;
   }
 
   if (!objetivoMin || !tiempoTotalMs || tiempoTotalMs <= 0) return 0;
