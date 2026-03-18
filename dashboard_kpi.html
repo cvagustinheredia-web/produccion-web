@@ -20,7 +20,7 @@
   --shadow:0 8px 20px rgba(0,0,0,.08);
 }
 
-*{box-sizing:border-box}
+*{ box-sizing:border-box; }
 
 body{
   margin:0;
@@ -38,35 +38,26 @@ body{
   margin-bottom:24px;
 }
 
-.header-left h1{
-  margin:0;
-  font-size:38px;
-  font-weight:900;
+.header-left{
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
-.header-left p{
-  margin:6px 0 0;
-  color:var(--muted);
-  font-size:16px;
-  font-weight:700;
-  text-transform:uppercase;
+.header-left h1{
+  margin:0;
+  font-size:52px;
+  font-weight:900;
+  text-align:center;
 }
 
 .logo{
-  height:80px;
+  height:96px;
   background:#fff;
   border:1px solid var(--border);
   border-radius:12px;
   padding:6px;
   box-shadow:var(--shadow);
-}
-
-.top-actions{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  margin-bottom:18px;
 }
 
 .info-reset{
@@ -78,39 +69,18 @@ body{
   font-size:14px;
   font-weight:700;
   color:var(--muted);
+  margin-bottom:20px;
 }
-
-.buttons{
-  display:flex;
-  gap:10px;
-}
-
-.btn{
-  border:none;
-  border-radius:10px;
-  padding:12px 16px;
-  font-weight:800;
-  cursor:pointer;
-  color:#fff;
-}
-
-.refresh{ background:var(--blue); }
-.reset{ background:var(--orange); }
 
 .section-title{
-  margin:28px 0 14px;
-  font-size:28px;
+  margin:12px 0 16px;
+  font-size:30px;
   font-weight:900;
   color:var(--text);
   text-transform:uppercase;
 }
 
-.grid-sectores{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:16px;
-}
-
+.grid-sectores,
 .grid-lineas{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -125,11 +95,22 @@ body{
   box-shadow:var(--shadow);
 }
 
+.card.clickable{
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+
+.card.clickable:hover{
+  transform:translateY(-3px);
+  box-shadow:0 14px 28px rgba(0,0,0,.12);
+}
+
 .card h3{
   margin:0 0 14px;
-  font-size:24px;
+  font-size:26px;
   font-weight:900;
   text-transform:uppercase;
+  text-align:center;
 }
 
 .kpi-row{
@@ -160,15 +141,32 @@ body{
   color:var(--text);
 }
 
-.estado-bad{
-  color:var(--red);
+.estado-bad{ color:var(--red); }
+.estado-good{ color:var(--green); }
+.estado-mid{ color:var(--orange); }
+
+.hidden{ display:none; }
+
+.topbar-detalle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
 }
-.estado-good{
-  color:var(--green);
+
+.btn{
+  border:none;
+  border-radius:10px;
+  padding:12px 16px;
+  font-weight:800;
+  cursor:pointer;
+  color:#fff;
 }
-.estado-mid{
-  color:var(--orange);
-}
+
+.btn-back{ background:var(--blue); }
+.btn-detail{ background:var(--orange); }
 
 .linea-chip{
   display:inline-block;
@@ -183,6 +181,53 @@ body{
 .chip-motor{ background:var(--blue); }
 .chip-viesa{ background:var(--green); }
 .chip-varios{ background:var(--orange); }
+.chip-default{ background:var(--gray); }
+
+.lista{
+  margin:0;
+  padding-left:18px;
+}
+
+.lista li{
+  margin:6px 0;
+  font-weight:700;
+  color:var(--text);
+}
+
+.vacio{
+  background:#fff;
+  border:1px dashed var(--border);
+  border-radius:16px;
+  padding:24px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.chart-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin:14px 0 8px;
+}
+
+.donut{
+  width:150px;
+  height:150px;
+}
+
+.donut text{
+  font-size:16px;
+  font-weight:900;
+  fill:var(--text);
+}
+
+.small-note{
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  margin-top:4px;
+}
 
 @media (max-width:1200px){
   .grid-sectores,
@@ -197,9 +242,12 @@ body{
     grid-template-columns:1fr;
   }
 
-  .top-actions{
-    flex-direction:column;
-    align-items:flex-start;
+  .header{
+    grid-template-columns:1fr;
+  }
+
+  .header-left{
+    justify-content:flex-start;
   }
 }
 </style>
@@ -209,24 +257,30 @@ body{
 <div class="header">
   <div class="header-left">
     <h1>KPI INDUSTRIALES</h1>
-    <p>Resumen por sector y por línea</p>
   </div>
   <img src="logo_colven.png" alt="Colven" class="logo">
 </div>
 
-<div class="top-actions">
-  <div class="info-reset" id="infoReset">REINICIO GLOBAL: SIN CONFIGURAR</div>
-  <div class="buttons">
-    <button class="btn refresh" onclick="cargar()">ACTUALIZAR</button>
-    <button class="btn reset" onclick="reiniciarDashboard()">REINICIAR</button>
-  </div>
+<div class="info-reset" id="infoReset">REINICIO GLOBAL: SIN CONFIGURAR</div>
+
+<!-- VISTA GENERAL -->
+<div id="vistaGeneral">
+  <div class="section-title">SECTORES</div>
+  <div class="grid-sectores" id="gridSectores"></div>
 </div>
 
-<div class="section-title">SECTORES</div>
-<div class="grid-sectores" id="gridSectores"></div>
+<!-- VISTA DETALLE -->
+<div id="vistaDetalle" class="hidden">
+  <div class="topbar-detalle">
+    <div>
+      <button class="btn btn-back" onclick="volverSectores()">← VOLVER A SECTORES</button>
+    </div>
+    <div id="contenedorDetalleSectorBtn"></div>
+  </div>
 
-<div class="section-title">LÍNEAS DE MOIE</div>
-<div class="grid-lineas" id="gridLineas"></div>
+  <div class="section-title" id="tituloDetalleSector">SECTOR</div>
+  <div class="grid-lineas" id="gridLineasDetalle"></div>
+</div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -235,6 +289,7 @@ const supabaseClient = supabase.createClient(
 );
 
 let intervalo = null;
+let sectorActual = null;
 
 const SECTORES = [
   "MOV",
@@ -245,11 +300,14 @@ const SECTORES = [
   "INYECCION"
 ];
 
-const LINEAS_MOIE = [
-  "LINEA MOTOR",
-  "LINEA VIESA",
-  "LINEA VARIOS"
-];
+const LINEAS_POR_SECTOR = {
+  "MOIE": ["LINEA MOTOR", "LINEA VIESA", "LINEA VARIOS"],
+  "MOV": [],
+  "TORNERIA": [],
+  "MECANIZADO": [],
+  "VIESA": [],
+  "INYECCION": []
+};
 
 function parseFecha(valor){
   if(!valor) return null;
@@ -342,49 +400,81 @@ function calcularKpiGrupo(regs){
     else tiempoParadaMs += Math.max(Date.now() - inicio.getTime(), 0);
   });
 
-  let tiempoPromedioMs = 0;
-  const lecturas = regs.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
-  if (lecturas.length > 0) {
-    let suma = 0;
-    let cantidad = 0;
-    lecturas.forEach(r => {
-      const inicio = parseFecha(r.inicio);
-      const fin = parseFecha(r.fin);
-      if (inicio && fin) {
-        suma += Math.max(fin.getTime() - inicio.getTime(), 0);
-        cantidad++;
-      }
-    });
-    if (cantidad > 0) tiempoPromedioMs = suma / cantidad;
-  }
-
   return {
     piezas,
     puestosProduciendo,
     puestosParados,
     puestosEsperando,
     operariosActivos,
-    tiempoParadaMs,
-    tiempoPromedioMs
+    tiempoParadaMs
   };
 }
 
-function semaforoSector(kpi){
+function semaforoGrupo(kpi){
   if (kpi.puestosParados > 0) return ['ATENCIÓN', 'estado-bad'];
   if (kpi.puestosProduciendo > 0) return ['OPERANDO', 'estado-good'];
   return ['SIN ACTIVIDAD', 'estado-mid'];
 }
 
-function renderSectorCard(nombre, kpi){
-  const [estadoTexto, estadoClase] = semaforoSector(kpi);
+function contarEstados(kpi){
+  return {
+    produciendo: kpi.puestosProduciendo,
+    parados: kpi.puestosParados,
+    esperando: kpi.puestosEsperando
+  };
+}
+
+function donutSvg(estados){
+  const total = estados.produciendo + estados.parados + estados.esperando;
+
+  if (total === 0) {
+    return `
+      <svg class="donut" viewBox="0 0 42 42">
+        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#d8e1ea" stroke-width="6"></circle>
+        <text x="21" y="22" text-anchor="middle">0</text>
+      </svg>
+    `;
+  }
+
+  const p1 = (estados.produciendo / total) * 100;
+  const p2 = (estados.parados / total) * 100;
+  const p3 = (estados.esperando / total) * 100;
 
   return `
-    <div class="card">
+    <svg class="donut" viewBox="0 0 42 42">
+      <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#e8eef5" stroke-width="6"></circle>
+
+      <circle cx="21" cy="21" r="15.9155" fill="none"
+        stroke="#1fa15a" stroke-width="6"
+        stroke-dasharray="${p1} ${100-p1}" stroke-dashoffset="25"></circle>
+
+      <circle cx="21" cy="21" r="15.9155" fill="none"
+        stroke="#d64545" stroke-width="6"
+        stroke-dasharray="${p2} ${100-p2}" stroke-dashoffset="${25-p1}"></circle>
+
+      <circle cx="21" cy="21" r="15.9155" fill="none"
+        stroke="#8391a0" stroke-width="6"
+        stroke-dasharray="${p3} ${100-p3}" stroke-dashoffset="${25-p1-p2}"></circle>
+
+      <text x="21" y="22" text-anchor="middle">${total}</text>
+    </svg>
+  `;
+}
+
+function renderSectorCard(nombre, kpi){
+  const [estadoTexto, estadoClase] = semaforoGrupo(kpi);
+  const chart = donutSvg(contarEstados(kpi));
+
+  return `
+    <div class="card clickable" onclick="abrirSector('${nombre.replace(/'/g, "\\'")}')">
       <h3>${nombre}</h3>
+
+      <div class="chart-wrap">${chart}</div>
+      <div class="small-note">Distribución de puestos</div>
 
       <div class="kpi-row">
         <div class="kpi">
-          <div class="label">PIEZAS</div>
+          <div class="label">PIEZAS PRODUCIDAS</div>
           <div class="value">${kpi.piezas}</div>
         </div>
         <div class="kpi">
@@ -407,53 +497,98 @@ function renderSectorCard(nombre, kpi){
           <div class="label">ESTADO GENERAL</div>
           <div class="value ${estadoClase}" style="font-size:20px;">${estadoTexto}</div>
         </div>
-        <div class="kpi">
-          <div class="label">TIEMPO PARADA</div>
-          <div class="value" style="font-size:20px;">${format(kpi.tiempoParadaMs)}</div>
-        </div>
-        <div class="kpi">
-          <div class="label">TIEMPO PROM. PIEZA</div>
-          <div class="value" style="font-size:20px;">${format(kpi.tiempoPromedioMs)}</div>
-        </div>
       </div>
     </div>
   `;
 }
 
-function renderLineaCard(nombre, kpi){
-  let chipClass = 'chip-varios';
-  if (nombre === 'LINEA MOTOR') chipClass = 'chip-motor';
-  if (nombre === 'LINEA VIESA') chipClass = 'chip-viesa';
+function top5Paradas(regs){
+  const conteo = {};
 
-  const [estadoTexto, estadoClase] = semaforoSector(kpi);
+  regs.forEach(r => {
+    if ((r.estado || '').toLowerCase() !== 'parado') return;
+    const motivo = (r.motivo_parada || 'SIN MOTIVO').toUpperCase();
+    conteo[motivo] = (conteo[motivo] || 0) + 1;
+  });
+
+  return Object.entries(conteo)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0,5);
+}
+
+function piezasPorPuesto(regs){
+  const mapa = {};
+  regs.forEach(r => {
+    if ((r.tipo_registro || '').toLowerCase() !== 'lectura') return;
+    const puesto = `PUESTO ${r.puesto}`;
+    mapa[puesto] = (mapa[puesto] || 0) + 1;
+  });
+
+  return Object.entries(mapa).sort((a,b) => {
+    const na = parseInt(a[0].replace(/\D/g,'')) || 0;
+    const nb = parseInt(b[0].replace(/\D/g,'')) || 0;
+    return na - nb;
+  });
+}
+
+function chipClass(nombre){
+  if (nombre === 'LINEA MOTOR') return 'chip-motor';
+  if (nombre === 'LINEA VIESA') return 'chip-viesa';
+  if (nombre === 'LINEA VARIOS') return 'chip-varios';
+  return 'chip-default';
+}
+
+function renderLineaCard(nombre, regsLinea){
+  const kpi = calcularKpiGrupo(regsLinea);
+  const [estadoTexto, estadoClase] = semaforoGrupo(kpi);
+  const chart = donutSvg(contarEstados(kpi));
+  const piezasPuesto = piezasPorPuesto(regsLinea);
+  const paradas = top5Paradas(regsLinea);
+
+  const htmlPiezas = piezasPuesto.length
+    ? `<ul class="lista">${piezasPuesto.map(x => `<li>${x[0]}: ${x[1]}</li>`).join('')}</ul>`
+    : `<div class="small-note">Sin piezas registradas</div>`;
+
+  const htmlParadas = paradas.length
+    ? `<ul class="lista">${paradas.map(x => `<li>${x[0]}: ${x[1]}</li>`).join('')}</ul>`
+    : `<div class="small-note">Sin paradas registradas</div>`;
 
   return `
     <div class="card">
-      <div class="linea-chip ${chipClass}">${nombre}</div>
+      <div class="linea-chip ${chipClass(nombre)}">${nombre}</div>
+
+      <div class="chart-wrap">${chart}</div>
+      <div class="small-note">Distribución de estados de la línea</div>
+
       <div class="kpi-row">
-        <div class="kpi">
-          <div class="label">PIEZAS</div>
-          <div class="value">${kpi.piezas}</div>
+        <div class="kpi" style="grid-column: span 2;">
+          <div class="label">CANTIDAD DE PIEZAS POR PUESTO</div>
+          ${htmlPiezas}
         </div>
+
         <div class="kpi">
           <div class="label">OPERARIOS ACTIVOS</div>
           <div class="value">${kpi.operariosActivos}</div>
         </div>
+
         <div class="kpi">
-          <div class="label">PRODUCIENDO</div>
+          <div class="label">PUESTOS PRODUCIENDO</div>
           <div class="value">${kpi.puestosProduciendo}</div>
         </div>
+
         <div class="kpi">
-          <div class="label">PARADOS</div>
-          <div class="value">${kpi.puestosParados}</div>
+          <div class="label">PUESTOS ESPERANDO</div>
+          <div class="value">${kpi.puestosEsperando}</div>
         </div>
-        <div class="kpi">
-          <div class="label">TIEMPO PARADA</div>
-          <div class="value" style="font-size:20px;">${format(kpi.tiempoParadaMs)}</div>
-        </div>
+
         <div class="kpi">
           <div class="label">ESTADO</div>
           <div class="value ${estadoClase}" style="font-size:20px;">${estadoTexto}</div>
+        </div>
+
+        <div class="kpi" style="grid-column: span 2;">
+          <div class="label">TOP 5 PARADAS EN EL TURNO</div>
+          ${htmlParadas}
         </div>
       </div>
     </div>
@@ -475,67 +610,72 @@ async function cargar(){
 
   const regsSesion = reg.filter(r => Number(r.sesion_dashboard || 1) === Number(sesionActual));
 
-  // Sectores
+  renderGeneral(regsSesion);
+
+  if (sectorActual) {
+    renderDetalle(regsSesion, sectorActual);
+  }
+
+  await actualizarInfoReset();
+}
+
+function renderGeneral(regsSesion){
   let htmlSectores = '';
+
   SECTORES.forEach((sector) => {
     const regsSector = regsSesion.filter(r => (r.sector || '') === sector);
     const kpi = calcularKpiGrupo(regsSector);
     htmlSectores += renderSectorCard(sector, kpi);
   });
+
   document.getElementById('gridSectores').innerHTML = htmlSectores;
+}
 
-  // Líneas de MOIE
-  const regsMoie = regsSesion.filter(r => (r.sector || '') === 'MOIE');
-  let htmlLineas = '';
-  LINEAS_MOIE.forEach((linea) => {
-    const regsLinea = regsMoie.filter(r => (r.linea || '') === linea);
-    const kpi = calcularKpiGrupo(regsLinea);
-    htmlLineas += renderLineaCard(linea, kpi);
+function renderDetalle(regsSesion, sector){
+  const lineas = LINEAS_POR_SECTOR[sector] || [];
+  document.getElementById('tituloDetalleSector').innerText = `SECTOR: ${sector}`;
+
+  const contenedorBtn = document.getElementById('contenedorDetalleSectorBtn');
+  if (sector === 'MOIE') {
+    contenedorBtn.innerHTML = `<a href="dashboard.html" style="text-decoration:none;"><button class="btn btn-detail">DETALLE SECTOR</button></a>`;
+  } else {
+    contenedorBtn.innerHTML = '';
+  }
+
+  if (!lineas.length) {
+    document.getElementById('gridLineasDetalle').innerHTML =
+      `<div class="vacio">NO HAY LÍNEAS CONFIGURADAS PARA ESTE SECTOR.</div>`;
+    return;
+  }
+
+  const regsSector = regsSesion.filter(r => (r.sector || '') === sector);
+
+  let html = '';
+  lineas.forEach(linea => {
+    const regsLinea = regsSector.filter(r => (r.linea || '') === linea);
+    html += renderLineaCard(linea, regsLinea);
   });
-  document.getElementById('gridLineas').innerHTML = htmlLineas;
 
-  await actualizarInfoReset();
+  document.getElementById('gridLineasDetalle').innerHTML = html;
+}
+
+function abrirSector(sector){
+  sectorActual = sector;
+  document.getElementById('vistaGeneral').classList.add('hidden');
+  document.getElementById('vistaDetalle').classList.remove('hidden');
+  cargar();
+}
+
+function volverSectores(){
+  sectorActual = null;
+  document.getElementById('vistaDetalle').classList.add('hidden');
+  document.getElementById('vistaGeneral').classList.remove('hidden');
 }
 
 function iniciar(){
   if (intervalo) clearInterval(intervalo);
   cargar();
   intervalo = setInterval(cargar, 3000);
-}
-
-async function reiniciarDashboard(){
-  const { data: control, error: errControl } = await supabaseClient
-    .from('dashboard_control')
-    .select('sesion_actual')
-    .eq('id', 1)
-    .single();
-
-  if (errControl) {
-    alert("Error leyendo sesión actual");
-    console.log(errControl);
-    return;
-  }
-
-  const nuevaSesion = (control?.sesion_actual || 1) + 1;
-  const ts = new Date().toISOString();
-
-  const { error: errUpdate } = await supabaseClient
-    .from('dashboard_control')
-    .upsert(
-      [{ id: 1, reset_desde: ts, sesion_actual: nuevaSesion }],
-      { onConflict: 'id' }
-    );
-
-  if (errUpdate) {
-    alert("Error reiniciando dashboard");
-    console.log(errUpdate);
-    return;
-  }
-
-  clearInterval(intervalo);
-  document.getElementById("gridSectores").innerHTML = "";
-  document.getElementById("gridLineas").innerHTML = "";
-  setTimeout(() => iniciar(), 300);
 }
 
 iniciar();
