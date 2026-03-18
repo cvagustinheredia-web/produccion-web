@@ -15,14 +15,10 @@
       --blue:#2f80ed;
       --green:#1faa59;
       --red:#d64545;
-      --yellow:#d9a400;
-      --gray:#6b7682;
       --white:#ffffff;
     }
 
-    *{
-      box-sizing:border-box;
-    }
+    *{ box-sizing:border-box; }
 
     body{
       margin:0;
@@ -36,7 +32,6 @@
       max-width:1100px;
       margin:0 auto;
       display:grid;
-      grid-template-columns: 1fr;
       gap:20px;
     }
 
@@ -51,31 +46,20 @@
     .header-title{
       font-size:34px;
       font-weight:800;
-      letter-spacing:.5px;
       margin:0 0 8px 0;
-      color:var(--white);
-    }
-
-    .header-subtitle{
-      color:var(--muted);
-      font-size:14px;
-      margin-bottom:10px;
     }
 
     .section-title{
       font-size:28px;
       font-weight:800;
       margin:0 0 6px 0;
-      color:var(--white);
     }
 
     .mini-title{
       font-size:20px;
       font-weight:800;
       margin:18px 0 10px 0;
-      color:var(--white);
       text-transform:uppercase;
-      letter-spacing:.5px;
     }
 
     .label{
@@ -84,7 +68,6 @@
       color:var(--muted);
       margin-bottom:8px;
       text-transform:uppercase;
-      letter-spacing:.5px;
     }
 
     input{
@@ -99,18 +82,6 @@
       outline:none;
     }
 
-    input:focus{
-      border-color:var(--blue);
-      box-shadow:0 0 0 3px rgba(47,128,237,.18);
-    }
-
-    .row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:center;
-    }
-
     .btn{
       border:none;
       border-radius:12px;
@@ -118,32 +89,18 @@
       cursor:pointer;
       font-size:16px;
       font-weight:700;
-      transition:.15s ease;
-    }
-
-    .btn:hover{
-      transform:translateY(-1px);
-      filter:brightness(1.05);
-    }
-
-    .btn-primary{
-      background:var(--blue);
       color:white;
     }
 
-    .btn-success{
-      background:var(--green);
-      color:white;
-    }
+    .btn-primary{ background:var(--blue); }
+    .btn-success{ background:var(--green); }
+    .btn-danger{ background:var(--red); }
+    .btn-gray{ background:#425160; }
 
-    .btn-danger{
-      background:var(--red);
-      color:white;
-    }
-
-    .btn-gray{
-      background:#425160;
-      color:white;
+    .grupo-botones{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
     }
 
     .btn-puesto{
@@ -154,26 +111,11 @@
 
     .btn-puesto.activo{
       background:var(--blue);
-      color:white;
-      box-shadow:0 0 0 3px rgba(47,128,237,.2);
-    }
-
-    .grupo-botones{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
     }
 
     .bloqueado{
       pointer-events:none;
       opacity:.65;
-    }
-
-    .status-panel{
-      display:flex;
-      flex-wrap:wrap;
-      gap:16px;
-      margin-top:18px;
     }
 
     .status-box{
@@ -184,13 +126,13 @@
       font-weight:800;
       text-align:center;
       color:white;
-      border:1px solid rgba(255,255,255,.08);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+      margin-top:18px;
+      display:inline-block;
     }
 
-    .esperando{ background:linear-gradient(180deg,#66707c,#59636f); }
-    .produciendo{ background:linear-gradient(180deg,#1fb263,#179451); }
-    .parado{ background:linear-gradient(180deg,#df4e4e,#b93939); }
+    .esperando{ background:#66707c; }
+    .produciendo{ background:#1fb263; }
+    .parado{ background:#d64545; }
 
     .info-grid{
       display:grid;
@@ -210,43 +152,13 @@
       color:var(--muted);
       font-size:13px;
       text-transform:uppercase;
-      letter-spacing:.5px;
       margin-bottom:8px;
     }
 
     .info-card .v{
       font-size:24px;
       font-weight:800;
-      color:var(--white);
       word-break:break-word;
-    }
-
-    .ayuda{
-      color:var(--muted);
-      font-size:13px;
-      margin-top:8px;
-    }
-
-    .nombre-operario{
-      font-size:22px;
-      font-weight:800;
-      margin-top:12px;
-      color:#d9e7f5;
-    }
-
-    .linea{
-      height:1px;
-      background:var(--border);
-      margin:18px 0;
-    }
-
-    .continuar-wrap{
-      margin-top:14px;
-      display:none;
-    }
-
-    .continuar-wrap.show{
-      display:block;
     }
 
     .tag{
@@ -260,12 +172,21 @@
       font-weight:700;
     }
 
-    @media (max-width:700px){
-      .header-title{font-size:28px;}
-      .section-title{font-size:24px;}
-      .mini-title{font-size:18px;}
-      .status-box{font-size:19px; min-width:100%;}
-      input{max-width:100%;}
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .continuar-wrap{
+      margin-top:14px;
+      display:none;
+    }
+
+    .continuar-wrap.show{
+      display:block;
     }
   </style>
 </head>
@@ -274,13 +195,9 @@
 
     <div class="card">
       <h1 class="header-title">INGRESE SU LEGAJO</h1>
-      <div class="header-subtitle">Identificación de operario para iniciar la estación</div>
-
-      <label class="label" for="legajo">Legajo</label>
+      <label class="label">Legajo</label>
       <input id="legajo" placeholder="Ingresar legajo" oninput="buscarOperario()">
-
-      <div id="nombreOperario" class="nombre-operario"></div>
-
+      <div id="nombreOperario" style="font-size:22px;font-weight:800;margin-top:12px;"></div>
       <div style="margin-top:14px;">
         <button class="btn btn-primary" onclick="login()">Ingresar</button>
       </div>
@@ -288,14 +205,11 @@
 
     <div id="panel" class="card" style="display:none;">
       <h2 class="section-title">Linea Motor MOIE</h2>
-      <div class="header-subtitle">Control de producción y paradas de puesto</div>
 
-      <div class="row" style="justify-content:space-between; gap:16px;">
+      <div class="row">
         <div class="tag" id="operarioActivo">Operario: -</div>
         <div class="tag" id="puestoSeleccionadoTexto">Puesto seleccionado: Ninguno</div>
       </div>
-
-      <div class="linea"></div>
 
       <div class="mini-title">Seleccionar puesto</div>
       <div id="puestos" class="grupo-botones">
@@ -304,16 +218,12 @@
         <button class="btn btn-puesto" onclick="seleccionarPuesto(3)">Puesto 3</button>
         <button class="btn btn-puesto" onclick="seleccionarPuesto(4)">Puesto 4</button>
         <button class="btn btn-puesto" onclick="seleccionarPuesto(5)">Puesto 5</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(6)">Probador</button>
       </div>
 
-      <div class="linea"></div>
-
       <div class="mini-title">Escanear QR</div>
-      <label class="label" for="qr">Lectura del producto</label>
+      <label class="label">Lectura del producto</label>
       <input id="qr" placeholder="Escanear código QR" onkeydown="capturarEnterQR(event)">
-      <div class="ayuda">La lectora dispara la carga automáticamente al enviar Enter.</div>
-
-      <div class="linea"></div>
 
       <div class="mini-title">Parada de puesto</div>
       <div class="grupo-botones">
@@ -329,9 +239,7 @@
         <button class="btn btn-success" onclick="continuarProduccion()">CONTINUAR PRODUCCIÓN</button>
       </div>
 
-      <div class="status-panel">
-        <div id="estadoProduccion" class="status-box esperando">Esperando lectura</div>
-      </div>
+      <div id="estadoProduccion" class="status-box esperando">Esperando lectura</div>
 
       <div class="info-grid">
         <div class="info-card">
@@ -350,52 +258,38 @@
         </div>
       </div>
     </div>
-
   </div>
 
 <script>
-const { createClient } = supabase;
-
-const supabaseClient = createClient(
+const supabaseClient = supabase.createClient(
   "https://gqlftpalwqybyywdplei.supabase.co",
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
 let operario = '';
 let nombre = '';
-let actual = null;
 let puestoSeleccionado = null;
+let registroProduccionActual = null;
+let registroParadaActual = null;
 let productoEnCurso = null;
-let produccionPausada = false;
 let ultimaParada = null;
 
-// Buscar nombre del operario
 async function buscarOperario() {
   const legajo = document.getElementById('legajo').value.trim();
-
   if (!legajo) {
     document.getElementById('nombreOperario').innerText = '';
     return;
   }
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from('operarios')
     .select('*')
     .eq('legajo', legajo);
 
-  if (error) {
-    document.getElementById('nombreOperario').innerText = 'Error al consultar';
-    return;
-  }
-
-  if (data && data.length > 0) {
-    document.getElementById('nombreOperario').innerText = data[0].nombre;
-  } else {
-    document.getElementById('nombreOperario').innerText = 'No encontrado';
-  }
+  document.getElementById('nombreOperario').innerText =
+    (data && data.length) ? data[0].nombre : 'No encontrado';
 }
 
-// Login
 async function login() {
   const legajo = document.getElementById('legajo').value.trim();
 
@@ -404,26 +298,19 @@ async function login() {
     .select('*')
     .eq('legajo', legajo);
 
-  if (error) {
-    alert("Error de conexión");
+  if (error || !data || !data.length) {
+    alert('Legajo inválido');
     return;
   }
 
-  if (data && data.length > 0) {
-    operario = legajo;
-    nombre = data[0].nombre;
+  operario = legajo;
+  nombre = data[0].nombre;
 
-    document.getElementById('panel').style.display = 'block';
-    document.getElementById('operarioActivo').innerText =
-      "Operario: " + nombre + " (" + operario + ")";
-
-    document.getElementById('qr').focus();
-  } else {
-    alert('Legajo inválido');
-  }
+  document.getElementById('panel').style.display = 'block';
+  document.getElementById('operarioActivo').innerText =
+    "Operario: " + nombre + " (" + operario + ")";
 }
 
-// Selección manual de puesto, una sola vez
 function seleccionarPuesto(num) {
   if (puestoSeleccionado !== null) return;
 
@@ -434,16 +321,17 @@ function seleccionarPuesto(num) {
   botones[num - 1].classList.add('activo');
 
   document.getElementById('puestoSeleccionadoTexto').innerText =
-    "Puesto seleccionado: " + puestoSeleccionado;
+    "Puesto seleccionado: " + (num === 6 ? "Probador" : num);
 
   document.getElementById('puestos').classList.add('bloqueado');
-
-  setTimeout(() => {
-    document.getElementById('qr').focus();
-  }, 100);
+  document.getElementById('qr').focus();
 }
 
-// Capturar Enter del QR
+function limpiarProducto(valor) {
+  if (!valor) return '';
+  return valor.startsWith('0') ? valor.substring(1) : valor;
+}
+
 function capturarEnterQR(event) {
   if (event.key === 'Enter') {
     event.preventDefault();
@@ -451,33 +339,53 @@ function capturarEnterQR(event) {
   }
 }
 
-// Si empieza con 0, elimina solo el primero
-function limpiarProducto(valor) {
-  if (!valor) return '';
-  return valor.startsWith('0') ? valor.substring(1) : valor;
-}
-
 function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleString();
+  return new Date(fecha).toLocaleString('es-AR');
 }
 
 function setEstado(tipo) {
-  const estado = document.getElementById('estadoProduccion');
-  estado.className = 'status-box';
+  const box = document.getElementById('estadoProduccion');
+  box.className = 'status-box';
 
   if (tipo === 'produciendo') {
-    estado.classList.add('produciendo');
-    estado.innerText = 'Producción en proceso';
+    box.classList.add('produciendo');
+    box.innerText = 'Producción en proceso';
   } else if (tipo === 'parado') {
-    estado.classList.add('parado');
-    estado.innerText = 'Puesto detenido';
+    box.classList.add('parado');
+    box.innerText = 'Puesto detenido';
   } else {
-    estado.classList.add('esperando');
-    estado.innerText = 'Esperando lectura';
+    box.classList.add('esperando');
+    box.innerText = 'Esperando lectura';
   }
 }
 
-// Leer QR
+async function cerrarParadaSiExiste() {
+  if (!registroParadaActual) return;
+
+  await supabaseClient
+    .from('registros')
+    .update({
+      fin: new Date().toISOString()
+    })
+    .eq('id', registroParadaActual.id);
+
+  registroParadaActual = null;
+}
+
+async function cerrarProduccionSiExiste() {
+  if (!registroProduccionActual) return;
+
+  await supabaseClient
+    .from('registros')
+    .update({
+      fin: new Date().toISOString(),
+      estado: 'finalizado'
+    })
+    .eq('id', registroProduccionActual.id);
+
+  registroProduccionActual = null;
+}
+
 async function scan() {
   const qrInput = document.getElementById('qr');
   let qr = qrInput.value.trim();
@@ -490,26 +398,11 @@ async function scan() {
   if (!qr) return;
 
   qr = limpiarProducto(qr);
-  const ahora = new Date();
+  const ahora = new Date().toISOString();
 
-  // Si había una producción activa o continuada, la cerramos
-  if (actual) {
-    const { error: errorCierre } = await supabaseClient
-      .from('registros')
-      .update({
-        fin: ahora,
-        estado: "finalizado"
-      })
-      .eq('id', actual.id);
+  await cerrarParadaSiExiste();
+  await cerrarProduccionSiExiste();
 
-    if (errorCierre) {
-      alert("Error al cerrar la lectura anterior");
-      console.log(errorCierre);
-      return;
-    }
-  }
-
-  // Abrimos nueva lectura con el nuevo QR
   const { data, error } = await supabaseClient
     .from('registros')
     .insert({
@@ -517,71 +410,84 @@ async function scan() {
       operario: operario,
       puesto: puestoSeleccionado,
       inicio: ahora,
-      estado: "produciendo",
+      fin: null,
+      estado: 'produciendo',
       motivo_parada: null
     })
     .select();
 
   if (error) {
-    alert("Error al guardar");
     console.log(error);
+    alert("Error al guardar producción");
     return;
   }
 
-  actual = data[0];
+  registroProduccionActual = data[0];
   productoEnCurso = qr;
-  produccionPausada = false;
   ultimaParada = null;
 
-  document.getElementById('continuarWrap').classList.remove('show');
   document.getElementById('productoActual').innerText = qr;
   document.getElementById('inicioActual').innerText = formatearFecha(ahora);
   document.getElementById('ultimaParada').innerText = '-';
+  document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
 
   qrInput.value = '';
   qrInput.focus();
 }
 
-// Registrar parada
 async function registrarParada(motivo) {
   if (!puestoSeleccionado) {
     alert("Primero seleccioná un puesto");
     return;
   }
 
-  if (!actual) {
-    alert("No hay producción en curso para detener");
+  if (!registroProduccionActual) {
+    alert("No hay producción activa para detener");
     return;
   }
 
-  const ahora = new Date();
+  const ahora = new Date().toISOString();
 
-  const { error } = await supabaseClient
+  // cerrar producción actual
+  await supabaseClient
     .from('registros')
     .update({
       fin: ahora,
-      estado: "parado",
+      estado: 'finalizado'
+    })
+    .eq('id', registroProduccionActual.id);
+
+  registroProduccionActual = null;
+
+  // abrir tramo de parada
+  const { data, error } = await supabaseClient
+    .from('registros')
+    .insert({
+      producto: productoEnCurso,
+      operario: operario,
+      puesto: puestoSeleccionado,
+      inicio: ahora,
+      fin: null,
+      estado: 'parado',
       motivo_parada: motivo
     })
-    .eq('id', actual.id);
+    .select();
 
   if (error) {
-    alert("Error al registrar parada");
     console.log(error);
+    alert("Error al registrar parada");
     return;
   }
 
+  registroParadaActual = data[0];
   ultimaParada = motivo;
-  produccionPausada = true;
-  actual = null;
 
   document.getElementById('ultimaParada').innerText = motivo;
-  setEstado('parado');
   document.getElementById('continuarWrap').classList.add('show');
+  setEstado('parado');
 }
 
-// Continuar misma producción
 async function continuarProduccion() {
   if (!puestoSeleccionado) {
     alert("Primero seleccioná un puesto");
@@ -593,7 +499,9 @@ async function continuarProduccion() {
     return;
   }
 
-  const ahora = new Date();
+  const ahora = new Date().toISOString();
+
+  await cerrarParadaSiExiste();
 
   const { data, error } = await supabaseClient
     .from('registros')
@@ -602,19 +510,19 @@ async function continuarProduccion() {
       operario: operario,
       puesto: puestoSeleccionado,
       inicio: ahora,
-      estado: "produciendo",
+      fin: null,
+      estado: 'produciendo',
       motivo_parada: null
     })
     .select();
 
   if (error) {
-    alert("Error al continuar producción");
     console.log(error);
+    alert("Error al continuar producción");
     return;
   }
 
-  actual = data[0];
-  produccionPausada = false;
+  registroProduccionActual = data[0];
 
   document.getElementById('inicioActual').innerText = formatearFecha(ahora);
   document.getElementById('continuarWrap').classList.remove('show');
