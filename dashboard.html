@@ -14,7 +14,6 @@
   --orange:#d9821f;
   --overlay:rgba(255,255,255,0.12);
 }
-
 body{
   margin:0;
   padding:20px;
@@ -22,14 +21,12 @@ body{
   background:var(--bg);
   color:white;
 }
-
 .header{
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
   margin-bottom:8px;
 }
-
 .header-left{ width:220px; }
 .header-center{ flex:1; text-align:center; }
 .header-right{
@@ -38,53 +35,43 @@ body{
   justify-content:flex-end;
   align-items:flex-start;
 }
-
 .header img{ height:70px; }
-
 h1{
   font-size:48px;
   margin:0;
   font-weight:900;
   text-align:center;
 }
-
 .subtitulo-row{
   margin-top:10px;
   display:flex;
   justify-content:flex-start;
   align-items:center;
 }
-
 .subtitulo{
   text-align:left;
   font-size:24px;
   font-weight:700;
 }
-
 .grid{
   display:grid;
   grid-template-columns: repeat(6,1fr);
   gap:14px;
   margin-top:16px;
 }
-
 .card{
   padding:16px;
   border-radius:16px;
   min-height:450px;
 }
-
 .produciendo{ background:var(--green); }
 .esperando{ background:var(--gray); }
 .parado{ background:var(--red); }
 .turno{ background:var(--orange); }
-
 .blink{ animation:blink 1s infinite; }
-
 @keyframes blink{
   50%{ opacity:0.4; }
 }
-
 .titulo{
   text-align:center;
   font-size:26px;
@@ -92,28 +79,23 @@ h1{
   margin-bottom:10px;
   text-transform:uppercase;
 }
-
 .campo{
   font-size:16px;
   margin:6px 0;
   text-transform:uppercase;
 }
-
 .contador{
   margin-top:12px;
   background:var(--overlay);
   padding:10px;
   border-radius:10px;
 }
-
 .valor{
   font-size:20px;
   font-weight:900;
 }
-
 .ok{ color:#00ff88; }
 .mal{ color:#ff3b3b; }
-
 .botones{
   position:fixed;
   bottom:20px;
@@ -121,7 +103,6 @@ h1{
   display:flex;
   gap:10px;
 }
-
 .btn{
   padding:12px 18px;
   border:none;
@@ -130,10 +111,8 @@ h1{
   cursor:pointer;
   color:white;
 }
-
 .refresh{ background:#2f80ed; }
 .reset{ background:#ff8a00; }
-
 .info-reset{
   position:fixed;
   bottom:20px;
@@ -150,11 +129,9 @@ h1{
 
 <div class="header">
   <div class="header-left"></div>
-
   <div class="header-center">
     <h1>MOIE</h1>
   </div>
-
   <div class="header-right">
     <img src="logo_colven.png" alt="Colven">
   </div>
@@ -181,7 +158,6 @@ const supabaseClient = supabase.createClient(
 
 let intervalo = null;
 
-// ---------- utilidades ----------
 function parseFecha(valor){
   if(!valor) return null;
   const f = new Date(valor);
@@ -211,32 +187,32 @@ function format(ms){
   return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
 }
 
-// ---------- reset global ----------
-async function obtenerResetGlobal(){
+async function obtenerControl(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
-    .select('id, reset_desde')
+    .select('id, reset_desde, sesion_actual')
     .eq('id', 1)
-    .maybeSingle();
+    .single();
 
   if (error) {
-    console.log("Error leyendo reset global:", error);
-    return null;
+    console.log("Error leyendo dashboard_control:", error);
+    return { reset_desde: null, sesion_actual: 1 };
   }
 
-  if (!data) return null;
-  return data.reset_desde ? parseFecha(data.reset_desde) : null;
+  return {
+    reset_desde: data?.reset_desde ? parseFecha(data.reset_desde) : null,
+    sesion_actual: data?.sesion_actual || 1
+  };
 }
 
 async function actualizarInfoReset(){
-  const resetDesde = await obtenerResetGlobal();
+  const control = await obtenerControl();
   document.getElementById("infoReset").innerText =
-    resetDesde
-      ? "REINICIO GLOBAL DESDE: " + formatHoraArgentina(resetDesde)
+    control.reset_desde
+      ? "REINICIO GLOBAL DESDE: " + formatHoraArgentina(control.reset_desde)
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
-// ---------- dashboard ----------
 async function cargar(){
   const { data: reg = [], error: errReg } = await supabaseClient
     .from('registros')
@@ -252,7 +228,8 @@ async function cargar(){
     return;
   }
 
-  const resetDesde = await obtenerResetGlobal();
+  const control = await obtenerControl();
+  const sesionActual = control.sesion_actual;
 
   const mapaOperarios = {};
   ops.forEach(o => {
@@ -262,16 +239,9 @@ async function cargar(){
   let html = '';
 
   for(let p = 1; p <= 6; p++){
-    // IMPORTANTE:
-    // Tomamos SOLO registros posteriores al reinicio global.
     const regsPuesto = reg
       .filter(x => Number(x.puesto) === p)
-      .filter(x => {
-        const inicio = parseFecha(x.inicio);
-        if (!inicio) return false;
-        if (!resetDesde) return true;
-        return inicio.getTime() > resetDesde.getTime();
-      })
+      .filter(x => Number(x.sesion_dashboard || 1) === Number(sesionActual))
       .sort((a,b) => parseFecha(a.inicio) - parseFecha(b.inicio));
 
     let estado = "ESPERANDO";
@@ -285,30 +255,35 @@ async function cargar(){
     let tiempoTotalMs = 0;
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
-    let piezas = 0;
+
+    const piezas = regsPuesto.filter(r =>
+      (r.tipo_registro || '').toLowerCase() === 'lectura'
+    ).length;
+
+    const ultimaLectura = [...regsPuesto]
+      .reverse()
+      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+
+    const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
 
     if (regsPuesto.length === 0) {
       html += `
         <div class="card esperando">
           <div class="titulo">${p === 6 ? "PROBADOR" : "PUESTO " + p}</div>
-
           <div class="campo"><b>ESTADO:</b> ESPERANDO</div>
           <div class="campo"><b>LEGAJO:</b> -</div>
           <div class="campo"><b>OPERARIO:</b> -</div>
           <div class="campo"><b>PRODUCTO:</b> -</div>
           <div class="campo"><b>MOTIVO:</b> -</div>
           <div class="campo"><b>PIEZAS:</b> 0</div>
-
           <div class="contador">
             TIEMPO TOTAL
             <div class="valor">00:00:00</div>
           </div>
-
           <div class="contador">
             CODIGO EN CURSO
             <div class="valor">00:00:00 ${p <= 5 ? '<span class="ok">OK</span>' : ''}</div>
           </div>
-
           <div class="contador">
             TIEMPO PARADA
             <div class="valor">00:00:00</div>
@@ -318,18 +293,6 @@ async function cargar(){
       continue;
     }
 
-    const ultimoEvento = regsPuesto[regsPuesto.length - 1];
-
-    // PIEZAS = solo lecturas nuevas
-    piezas = regsPuesto.filter(r =>
-      (r.tipo_registro || '').toLowerCase() === 'lectura'
-    ).length;
-
-    const ultimaLectura = [...regsPuesto]
-      .reverse()
-      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
-
-    // TIEMPO TOTAL
     const inicioPrimero = parseFecha(regsPuesto[0].inicio);
     if (inicioPrimero) {
       if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
@@ -340,7 +303,6 @@ async function cargar(){
       }
     }
 
-    // TIEMPO PARADA
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -360,7 +322,6 @@ async function cargar(){
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
 
-    // CODIGO EN CURSO
     if (activoProduccion) {
       const inicioActivo = parseFecha(activoProduccion.inicio);
       if (inicioActivo) {
@@ -423,7 +384,6 @@ async function cargar(){
     html += `
       <div class="card ${clase} ${blink}">
         <div class="titulo">${p === 6 ? "PROBADOR" : "PUESTO " + p}</div>
-
         <div class="campo"><b>ESTADO:</b> ${estado}</div>
         <div class="campo"><b>LEGAJO:</b> ${legajo}</div>
         <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
@@ -453,7 +413,6 @@ async function cargar(){
   await actualizarInfoReset();
 }
 
-// ---------- controles ----------
 function iniciar(){
   if (intervalo) clearInterval(intervalo);
   cargar();
@@ -461,27 +420,37 @@ function iniciar(){
 }
 
 async function reiniciarDashboard(){
+  const { data: control, error: errControl } = await supabaseClient
+    .from('dashboard_control')
+    .select('sesion_actual')
+    .eq('id', 1)
+    .single();
+
+  if (errControl) {
+    alert("Error leyendo sesión actual");
+    console.log(errControl);
+    return;
+  }
+
+  const nuevaSesion = (control?.sesion_actual || 1) + 1;
   const ts = new Date().toISOString();
 
-  // Guardar solo la marca de reinicio global
-  const { error: errorReset } = await supabaseClient
+  const { error: errUpdate } = await supabaseClient
     .from('dashboard_control')
     .upsert(
-      [{ id: 1, reset_desde: ts }],
+      [{ id: 1, reset_desde: ts, sesion_actual: nuevaSesion }],
       { onConflict: 'id' }
     );
 
-  if (errorReset) {
-    alert("Error al guardar reinicio global");
-    console.log(errorReset);
+  if (errUpdate) {
+    alert("Error reiniciando dashboard");
+    console.log(errUpdate);
     return;
   }
 
   clearInterval(intervalo);
   document.getElementById("grid").innerHTML = "";
-  setTimeout(() => {
-    iniciar();
-  }, 300);
+  setTimeout(() => iniciar(), 300);
 }
 
 iniciar();
