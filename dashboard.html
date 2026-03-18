@@ -29,15 +29,8 @@ body{
   margin-bottom:8px;
 }
 
-.header-left{
-  width:220px;
-}
-
-.header-center{
-  flex:1;
-  text-align:center;
-}
-
+.header-left{ width:220px; }
+.header-center{ flex:1; text-align:center; }
 .header-right{
   width:220px;
   display:flex;
@@ -45,9 +38,7 @@ body{
   align-items:flex-start;
 }
 
-.header img{
-  height:70px;
-}
+.header img{ height:70px; }
 
 h1{
   font-size:48px;
@@ -150,47 +141,6 @@ h1{
   border-radius:10px;
   font-size:13px;
 }
-
-@media (max-width: 1700px){
-  .grid{
-    grid-template-columns: repeat(3,1fr);
-  }
-}
-
-@media (max-width: 1000px){
-  .grid{
-    grid-template-columns: repeat(2,1fr);
-  }
-}
-
-@media (max-width: 700px){
-  .grid{
-    grid-template-columns: 1fr;
-  }
-
-  .header{
-    flex-direction:column;
-    gap:12px;
-  }
-
-  .header-left,
-  .header-center,
-  .header-right{
-    width:100%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-  }
-
-  .subtitulo-row{
-    justify-content:center;
-  }
-
-  .subtitulo{
-    text-align:center;
-  }
-}
 </style>
 </head>
 
@@ -229,14 +179,9 @@ const supabaseClient = supabase.createClient(
 
 let intervalo = null;
 
-// ---------- FECHAS ----------
 function parseFecha(valor){
   if(!valor) return null;
-
-  // Maneja formatos de Supabase con o sin zona horaria
-  const normalizado = String(valor).replace(' ', 'T');
-  const fecha = new Date(normalizado);
-
+  const fecha = new Date(String(valor).replace(' ', 'T'));
   return isNaN(fecha.getTime()) ? null : fecha;
 }
 
@@ -254,7 +199,6 @@ function formatHoraArgentina(fecha){
   }).format(fecha);
 }
 
-// Guarda timestamp local de Argentina sin corrimientos raros
 function timestampArgentinaParaDB(){
   const ahora = new Date();
   const partes = new Intl.DateTimeFormat('sv-SE', {
@@ -268,12 +212,9 @@ function timestampArgentinaParaDB(){
     hour12: false
   }).formatToParts(ahora);
 
-  const mapa = {};
-  partes.forEach(p => {
-    mapa[p.type] = p.value;
-  });
-
-  return `${mapa.year}-${mapa.month}-${mapa.day} ${mapa.hour}:${mapa.minute}:${mapa.second}`;
+  const m = {};
+  partes.forEach(p => { m[p.type] = p.value; });
+  return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second}`;
 }
 
 function format(ms){
@@ -285,7 +226,6 @@ function format(ms){
   return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
 }
 
-// ---------- RESET GLOBAL ----------
 async function obtenerResetGlobal(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
@@ -309,25 +249,6 @@ async function actualizarInfoReset(){
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
-// ---------- LÓGICA DE PIEZAS ----------
-function contarPiezas(regsProduccion){
-  // Cuenta solo cambio real de pieza.
-  // Si hay una continuación del mismo producto después de parada, no suma una pieza nueva.
-  let piezas = 0;
-  let ultimoProductoContado = null;
-
-  regsProduccion.forEach(r => {
-    const producto = r.producto || '';
-    if (producto !== ultimoProductoContado) {
-      piezas++;
-      ultimoProductoContado = producto;
-    }
-  });
-
-  return piezas;
-}
-
-// ---------- DASHBOARD ----------
 async function cargar(){
   const { data: reg = [], error: errReg } = await supabaseClient
     .from('registros')
@@ -358,12 +279,7 @@ async function cargar(){
       .filter(x => {
         const inicio = parseFecha(x.inicio);
         if (!inicio) return false;
-
-        // Después del reinicio solo miramos actividad nueva
-        if (resetDesde) {
-          return inicio >= resetDesde;
-        }
-        return true;
+        return !resetDesde || inicio >= resetDesde;
       })
       .sort((a,b) => parseFecha(a.inicio) - parseFecha(b.inicio));
 
@@ -379,7 +295,6 @@ async function cargar(){
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
 
-    // TIEMPO TOTAL: desde primera actividad después del reset hasta ahora
     if (regsPuesto.length > 0) {
       const inicioPrimero = parseFecha(regsPuesto[0].inicio);
       if (inicioPrimero) {
@@ -387,7 +302,6 @@ async function cargar(){
       }
     }
 
-    // TIEMPO PARADA: suma solo tramos en estado parado
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -404,12 +318,8 @@ async function cargar(){
       }
     });
 
-    // Registro activo del puesto después del reset
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
-
-    const regsProduccion = regsPuesto.filter(r => (r.estado || '').toLowerCase() === 'produciendo');
-    const piezas = contarPiezas(regsProduccion);
 
     if (activoProduccion) {
       estado = "PRODUCCION";
@@ -432,6 +342,8 @@ async function cargar(){
       motivo = activoParada.motivo_parada || "-";
       tiempoCodigoMs = 0;
     }
+
+    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
 
     let objetivo = null;
     if (p >= 1 && p <= 4) objetivo = 13 * 60 * 1000;
@@ -477,7 +389,6 @@ async function cargar(){
   await actualizarInfoReset();
 }
 
-// ---------- CONTROLES ----------
 function iniciar(){
   if (intervalo) clearInterval(intervalo);
   cargar();
