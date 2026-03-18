@@ -330,7 +330,9 @@ function renderLinea(linea, regsLinea, mapaOperarios){
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
 
-    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+    const lecturas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+    const piezas = Math.max(lecturas - 1, 0);
+
     const ultimaLectura = [...regsPuesto].reverse().find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
     const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
 
