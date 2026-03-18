@@ -224,11 +224,7 @@ async function obtenerResetGlobal(){
     return null;
   }
 
-  if (!data) {
-    console.log("No existe fila dashboard_control id=1");
-    return null;
-  }
-
+  if (!data) return null;
   return data.reset_desde ? parseFecha(data.reset_desde) : null;
 }
 
@@ -298,7 +294,6 @@ async function cargar(){
 
     const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
 
-    // Si no hubo nada después del reinicio, mostrar todo en cero
     if (regsPuesto.length === 0) {
       html += `
         <div class="card esperando">
@@ -330,7 +325,6 @@ async function cargar(){
       continue;
     }
 
-    // TIEMPO TOTAL
     const inicioPrimero = parseFecha(regsPuesto[0].inicio);
     if (inicioPrimero) {
       if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
@@ -341,7 +335,6 @@ async function cargar(){
       }
     }
 
-    // TIEMPO PARADA
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -358,7 +351,6 @@ async function cargar(){
       }
     });
 
-    // CODIGO EN CURSO
     if (ultimaLectura) {
       const inicioLectura = parseFecha(ultimaLectura.inicio);
       if (inicioLectura) {
@@ -458,27 +450,40 @@ function iniciar(){
 async function reiniciarDashboard(){
   const ts = new Date().toISOString();
 
-  const { data, error } = await supabaseClient
+  // 1) guardar reset global
+  const { error: errorReset } = await supabaseClient
     .from('dashboard_control')
     .upsert(
       [{ id: 1, reset_desde: ts }],
       { onConflict: 'id' }
-    )
-    .select();
+    );
 
-  if (error) {
-    alert("Error al reiniciar globalmente");
-    console.log("Error guardando reset:", error);
+  if (errorReset) {
+    alert("Error al guardar reinicio global");
+    console.log(errorReset);
     return;
   }
 
-  console.log("Reset global guardado:", data);
+  // 2) cerrar TODOS los registros abiertos para que ningún puesto siga activo
+  const { error: errorCerrar } = await supabaseClient
+    .from('registros')
+    .update({
+      fin: ts,
+      estado: 'finalizado'
+    })
+    .is('fin', null);
+
+  if (errorCerrar) {
+    alert("Error al cerrar registros abiertos");
+    console.log(errorCerrar);
+    return;
+  }
 
   clearInterval(intervalo);
   document.getElementById("grid").innerHTML = "";
   setTimeout(() => {
     iniciar();
-  }, 200);
+  }, 300);
 }
 
 iniciar();
