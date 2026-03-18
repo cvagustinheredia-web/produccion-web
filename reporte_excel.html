@@ -31,7 +31,7 @@
     }
 
     .container{
-      max-width:1300px;
+      max-width:1400px;
       margin:0 auto;
       display:grid;
       gap:20px;
@@ -84,7 +84,7 @@
 
     .filters{
       display:grid;
-      grid-template-columns:repeat(6, 1fr);
+      grid-template-columns:repeat(7, 1fr);
       gap:14px;
       align-items:end;
     }
@@ -135,7 +135,13 @@
 
     .btn-search{ background:var(--blue); }
     .btn-export{ background:var(--green); }
-    .btn-back{ background:var(--orange); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-back{
+      background:var(--orange);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
 
     .stats{
       display:grid;
@@ -175,6 +181,7 @@
       border:1px solid var(--border);
       padding:10px 8px;
       text-align:left;
+      vertical-align:top;
     }
 
     th{
@@ -238,8 +245,13 @@
         </div>
 
         <div class="field">
-          <label>Fecha</label>
-          <input type="date" id="fecha">
+          <label>Fecha desde</label>
+          <input type="date" id="fechaDesde">
+        </div>
+
+        <div class="field">
+          <label>Fecha hasta</label>
+          <input type="date" id="fechaHasta">
         </div>
 
         <div class="field">
@@ -292,7 +304,9 @@
 
     <div class="card">
       <h2 class="title">PREVISUALIZACIÓN DETALLE</h2>
-      <div class="muted" style="margin-bottom:12px;">Se exportan solo las piezas cerradas, es decir, cuando una lectura queda completada por la lectura siguiente.</div>
+      <div class="muted" style="margin-bottom:12px;">
+        Se exportan solo las piezas cerradas, es decir, cuando una lectura queda completada por la lectura siguiente.
+      </div>
       <div style="overflow:auto;">
         <table>
           <thead>
@@ -310,6 +324,32 @@
           </thead>
           <tbody id="tablaDetalle">
             <tr><td colspan="9" class="muted">Todavía no hay datos cargados.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="title">PREVISUALIZACIÓN PARADAS</h2>
+      <div class="muted" style="margin-bottom:12px;">
+        Cada parada se muestra por separado, incluso si hubo más de una dentro de la misma lectura de QR.
+      </div>
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Sector</th>
+              <th>Línea</th>
+              <th>Puesto</th>
+              <th>Producto</th>
+              <th>Motivo</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Tiempo de parada</th>
+            </tr>
+          </thead>
+          <tbody id="tablaParadas">
+            <tr><td colspan="8" class="muted">Todavía no hay paradas cargadas.</td></tr>
           </tbody>
         </table>
       </div>
@@ -344,6 +384,7 @@ const TURNOS = {
 
 let detalleActual = [];
 let resumenActual = [];
+let paradasDetalleActual = [];
 
 function msToTime(ms){
   if(!ms || ms < 0 || isNaN(ms)) ms = 0;
@@ -431,24 +472,22 @@ async function obtenerSesionActual(){
   return data.sesion_actual || 1;
 }
 
-function rangoPorFechaYTurno(fecha, turno){
-  if(!fecha) return null;
+function rangoPorFechaYTurno(fechaDesde, fechaHasta, turno){
+  if(!fechaDesde || !fechaHasta) return null;
 
-  if(turno === "TODO_EL_DIA"){
-    const inicio = new Date(`${fecha}T00:00:00`);
-    const fin = new Date(`${fecha}T23:59:59`);
-    return { inicio, fin };
-  }
+  let inicio = new Date(`${fechaDesde}T00:00:00`);
+  let fin = new Date(`${fechaHasta}T23:59:59`);
 
-  const cfg = TURNOS[turno];
-  if(!cfg) return null;
+  if(turno !== "TODO_EL_DIA"){
+    const cfg = TURNOS[turno];
+    if(cfg){
+      inicio = new Date(`${fechaDesde}T${cfg.inicio}`);
+      fin = new Date(`${fechaHasta}T${cfg.fin}`);
 
-  const inicio = new Date(`${fecha}T${cfg.inicio}`);
-  let fin = new Date(`${fecha}T${cfg.fin}`);
-
-  // turno noche cruza de día
-  if (turno === "NOCHE") {
-    fin.setDate(fin.getDate() + 1);
+      if (turno === "NOCHE") {
+        fin.setDate(fin.getDate() + 1);
+      }
+    }
   }
 
   return { inicio, fin };
@@ -482,7 +521,9 @@ function tiempoParadaTotalPorPuesto(regsFiltrados, sector, linea, puesto){
     const ini = parseFecha(r.inicio);
     const fin = r.fin ? parseFecha(r.fin) : new Date();
 
-    if (ini && fin) total += Math.max(fin.getTime() - ini.getTime(), 0);
+    if (ini && fin) {
+      total += Math.max(fin.getTime() - ini.getTime(), 0);
+    }
   });
 
   return total;
@@ -492,7 +533,8 @@ async function obtenerRegistrosFiltrados(){
   const sector = document.getElementById("sector").value;
   const linea = document.getElementById("linea").value;
   const puesto = document.getElementById("puesto").value;
-  const fecha = document.getElementById("fecha").value;
+  const fechaDesde = document.getElementById("fechaDesde").value;
+  const fechaHasta = document.getElementById("fechaHasta").value;
   const turno = document.getElementById("turno").value;
   const vista = document.getElementById("vista").value;
 
@@ -514,7 +556,8 @@ async function obtenerRegistrosFiltrados(){
   }
 
   if (vista === "HISTORICO_FECHA") {
-    const rango = rangoPorFechaYTurno(fecha, turno);
+    const rango = rangoPorFechaYTurno(fechaDesde, fechaHasta, turno);
+
     if (rango) {
       datos = datos.filter(r => {
         const ini = parseFecha(r.inicio);
@@ -533,8 +576,8 @@ async function obtenerRegistrosFiltrados(){
 
 function construirDetalle(regs){
   const detalle = [];
-
   const grupos = {};
+
   regs.forEach(r => {
     const key = `${r.sector}||${r.linea}||${r.puesto}`;
     if (!grupos[key]) grupos[key] = [];
@@ -566,7 +609,9 @@ function construirDetalle(regs){
       paradasDelProducto.forEach(p => {
         const ini = parseFecha(p.inicio);
         const finP = p.fin ? parseFecha(p.fin) : new Date();
-        if (ini && finP) tiempoParadaProductoMs += Math.max(finP.getTime() - ini.getTime(), 0);
+        if (ini && finP) {
+          tiempoParadaProductoMs += Math.max(finP.getTime() - ini.getTime(), 0);
+        }
       });
 
       const tiempoParadaPuestoMs = tiempoParadaTotalPorPuesto(regs, r.sector, r.linea, r.puesto);
@@ -581,7 +626,6 @@ function construirDetalle(regs){
         tiempo_fabricacion: msToTime(tiempoFabMs),
         tiempo_parada_producto: msToTime(tiempoParadaProductoMs),
         tiempo_parada_total_puesto: msToTime(tiempoParadaPuestoMs),
-
         _tiempo_fabricacion_ms: tiempoFabMs
       });
     });
@@ -590,11 +634,38 @@ function construirDetalle(regs){
   return detalle;
 }
 
+function construirParadasDetalle(regs){
+  const paradas = [];
+
+  regs.forEach(r => {
+    if ((r.estado || '').toLowerCase() !== 'parado') return;
+
+    const inicio = parseFecha(r.inicio);
+    const fin = r.fin ? parseFecha(r.fin) : new Date();
+
+    if (!inicio || !fin) return;
+
+    paradas.push({
+      sector: r.sector || "",
+      linea: r.linea || "",
+      puesto: r.puesto || "",
+      producto: r.producto || "",
+      motivo: r.motivo_parada || r.motivo || "SIN MOTIVO",
+      inicio: formatFechaHora(r.inicio),
+      fin: formatFechaHora(r.fin),
+      tiempo_parada: msToTime(Math.max(fin.getTime() - inicio.getTime(), 0))
+    });
+  });
+
+  return paradas;
+}
+
 function construirResumen(detalle){
   const sector = document.getElementById("sector").value || "TODOS";
   const linea = document.getElementById("linea").value || "TODAS";
   const puesto = document.getElementById("puesto").value || "TODOS";
-  const fecha = document.getElementById("fecha").value || "SIN FECHA";
+  const fechaDesde = document.getElementById("fechaDesde").value || "SIN FECHA";
+  const fechaHasta = document.getElementById("fechaHasta").value || "SIN FECHA";
   const turno = document.getElementById("turno").value;
 
   let tiempoTotalMs = 0;
@@ -609,7 +680,8 @@ function construirResumen(detalle){
     sector,
     linea,
     puesto,
-    fecha,
+    fecha_desde: fechaDesde,
+    fecha_hasta: fechaHasta,
     turno,
     tiempo_total_periodo: msToTime(tiempoTotalMs),
     piezas_fabricadas: piezasFabricadas,
@@ -653,17 +725,42 @@ function pintarDetalle(detalle){
   `).join('');
 }
 
+function pintarParadas(paradas){
+  const tbody = document.getElementById("tablaParadas");
+
+  if (!paradas.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="muted">No hay paradas para los filtros seleccionados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = paradas.map(p => `
+    <tr>
+      <td>${p.sector}</td>
+      <td>${p.linea}</td>
+      <td>${p.puesto}</td>
+      <td>${p.producto}</td>
+      <td>${p.motivo}</td>
+      <td>${p.inicio}</td>
+      <td>${p.fin}</td>
+      <td>${p.tiempo_parada}</td>
+    </tr>
+  `).join('');
+}
+
 async function buscarReporte(){
   const regs = await obtenerRegistrosFiltrados();
+
   detalleActual = construirDetalle(regs);
   resumenActual = construirResumen(detalleActual);
+  paradasDetalleActual = construirParadasDetalle(regs);
 
   pintarResumen(resumenActual, detalleActual);
   pintarDetalle(detalleActual);
+  pintarParadas(paradasDetalleActual);
 }
 
 function exportarExcel(){
-  if (!detalleActual.length) {
+  if (!detalleActual.length && !paradasDetalleActual.length) {
     alert("Primero hacé BUSCAR para generar datos.");
     return;
   }
@@ -682,14 +779,41 @@ function exportarExcel(){
     tiempo_parada_total_puesto: d.tiempo_parada_total_puesto
   }));
 
-  const ws1 = XLSX.utils.json_to_sheet(detalleExcel);
-  const ws2 = XLSX.utils.json_to_sheet(resumenActual);
+  const resumenExcel = resumenActual.map(r => ({
+    sector: r.sector,
+    linea: r.linea,
+    puesto: r.puesto,
+    fecha_desde: r.fecha_desde,
+    fecha_hasta: r.fecha_hasta,
+    turno: r.turno,
+    tiempo_total_periodo: r.tiempo_total_periodo,
+    piezas_fabricadas: r.piezas_fabricadas,
+    piezas_programadas: r.piezas_programadas
+  }));
+
+  const paradasExcel = paradasDetalleActual.map(p => ({
+    sector: p.sector,
+    linea: p.linea,
+    puesto: p.puesto,
+    producto: p.producto,
+    motivo: p.motivo,
+    inicio: p.inicio,
+    fin: p.fin,
+    tiempo_parada: p.tiempo_parada
+  }));
+
+  const ws1 = XLSX.utils.json_to_sheet(detalleExcel.length ? detalleExcel : [{}]);
+  const ws2 = XLSX.utils.json_to_sheet(resumenExcel.length ? resumenExcel : [{}]);
+  const ws3 = XLSX.utils.json_to_sheet(paradasExcel.length ? paradasExcel : [{}]);
 
   XLSX.utils.book_append_sheet(wb, ws1, "DETALLE");
   XLSX.utils.book_append_sheet(wb, ws2, "RESUMEN");
+  XLSX.utils.book_append_sheet(wb, ws3, "PARADAS");
 
-  const fecha = document.getElementById("fecha").value || "sin_fecha";
-  XLSX.writeFile(wb, `reporte_produccion_${fecha}.xlsx`);
+  const fechaDesde = document.getElementById("fechaDesde").value || "desde";
+  const fechaHasta = document.getElementById("fechaHasta").value || "hasta";
+
+  XLSX.writeFile(wb, `reporte_produccion_${fechaDesde}_${fechaHasta}.xlsx`);
 }
 
 (function init(){
@@ -697,9 +821,12 @@ function exportarExcel(){
 
   const hoy = new Date();
   const yyyy = hoy.getFullYear();
-  const mm = String(hoy.getMonth()+1).padStart(2,'0');
+  const mm = String(hoy.getMonth() + 1).padStart(2,'0');
   const dd = String(hoy.getDate()).padStart(2,'0');
-  document.getElementById("fecha").value = `${yyyy}-${mm}-${dd}`;
+  const fechaHoy = `${yyyy}-${mm}-${dd}`;
+
+  document.getElementById("fechaDesde").value = fechaHoy;
+  document.getElementById("fechaHasta").value = fechaHoy;
 })();
 </script>
 </body>
