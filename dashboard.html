@@ -143,16 +143,6 @@ h1{
   border-radius:10px;
   font-size:13px;
 }
-
-@media (max-width: 1700px){
-  .grid{ grid-template-columns: repeat(3,1fr); }
-}
-@media (max-width: 1000px){
-  .grid{ grid-template-columns: repeat(2,1fr); }
-}
-@media (max-width: 700px){
-  .grid{ grid-template-columns: 1fr; }
-}
 </style>
 </head>
 
@@ -194,8 +184,8 @@ let intervalo = null;
 // ---------- utilidades ----------
 function parseFecha(valor){
   if(!valor) return null;
-  const fecha = new Date(valor);
-  return isNaN(fecha.getTime()) ? null : fecha;
+  const f = new Date(valor);
+  return isNaN(f.getTime()) ? null : f;
 }
 
 function formatHoraArgentina(fecha){
@@ -212,10 +202,6 @@ function formatHoraArgentina(fecha){
   }).format(fecha);
 }
 
-function timestampArgentinaParaDB(){
-  return new Date().toISOString();
-}
-
 function format(ms){
   if(!ms || ms < 0 || isNaN(ms)) ms = 0;
   const totalSeg = Math.floor(ms / 1000);
@@ -225,7 +211,6 @@ function format(ms){
   return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
 }
 
-// ---------- reset global ----------
 async function obtenerResetGlobal(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
@@ -249,7 +234,7 @@ async function actualizarInfoReset(){
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
-// ---------- lógica principal ----------
+// ---------- dashboard ----------
 async function cargar(){
   const { data: reg = [], error: errReg } = await supabaseClient
     .from('registros')
@@ -275,12 +260,14 @@ async function cargar(){
   let html = '';
 
   for(let p = 1; p <= 6; p++){
+    // SOLO registros iniciados DESPUÉS del reinicio
     const regsPuesto = reg
       .filter(x => Number(x.puesto) === p)
       .filter(x => {
         const inicio = parseFecha(x.inicio);
         if (!inicio) return false;
-        return !resetDesde || inicio >= resetDesde;
+        if (!resetDesde) return true;
+        return inicio.getTime() >= resetDesde.getTime();
       })
       .sort((a,b) => parseFecha(a.inicio) - parseFecha(b.inicio));
 
@@ -296,35 +283,60 @@ async function cargar(){
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
 
-    // Pieza real = solo lectura nueva
-    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+    const piezas = regsPuesto.filter(r =>
+      (r.tipo_registro || '').toLowerCase() === 'lectura'
+    ).length;
 
-    // Última lectura real para calcular código en curso
     const ultimaLectura = [...regsPuesto]
       .reverse()
       .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
 
-    // Último evento del puesto
     const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
 
-    // TIEMPO TOTAL:
-    // desde la primera actividad posterior al reinicio
-    // pero si el turno fue finalizado, congelar en ese momento
-    if (regsPuesto.length > 0) {
-      const inicioPrimero = parseFecha(regsPuesto[0].inicio);
-      if (inicioPrimero) {
-        if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
-          const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-          if (finTurno) {
-            tiempoTotalMs = Math.max(finTurno.getTime() - inicioPrimero.getTime(), 0);
-          }
-        } else {
-          tiempoTotalMs = Math.max(Date.now() - inicioPrimero.getTime(), 0);
-        }
+    // si NO hubo nada después del reinicio, todo en cero
+    if (regsPuesto.length === 0) {
+      html += `
+        <div class="card esperando">
+          <div class="titulo">${p === 6 ? "PROBADOR" : "PUESTO " + p}</div>
+
+          <div class="campo"><b>ESTADO:</b> ESPERANDO</div>
+          <div class="campo"><b>LEGAJO:</b> -</div>
+          <div class="campo"><b>OPERARIO:</b> -</div>
+          <div class="campo"><b>PRODUCTO:</b> -</div>
+          <div class="campo"><b>MOTIVO:</b> -</div>
+          <div class="campo"><b>PIEZAS:</b> 0</div>
+
+          <div class="contador">
+            TIEMPO TOTAL
+            <div class="valor">00:00:00</div>
+          </div>
+
+          <div class="contador">
+            CODIGO EN CURSO
+            <div class="valor">00:00:00 ${p <= 5 ? '<span class="ok">OK</span>' : ''}</div>
+          </div>
+
+          <div class="contador">
+            TIEMPO PARADA
+            <div class="valor">00:00:00</div>
+          </div>
+        </div>
+      `;
+      continue;
+    }
+
+    // TIEMPO TOTAL
+    const inicioPrimero = parseFecha(regsPuesto[0].inicio);
+    if (inicioPrimero) {
+      if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+        const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
+        tiempoTotalMs = finTurno ? Math.max(finTurno.getTime() - inicioPrimero.getTime(), 0) : 0;
+      } else {
+        tiempoTotalMs = Math.max(Date.now() - inicioPrimero.getTime(), 0);
       }
     }
 
-    // TIEMPO PARADA:
+    // TIEMPO PARADA
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -341,17 +353,13 @@ async function cargar(){
       }
     });
 
-    // TIEMPO CODIGO EN CURSO:
-    // desde la última lectura real hasta ahora,
-    // incluso si hubo paradas o continuaciones
+    // CODIGO EN CURSO = desde última lectura real
     if (ultimaLectura) {
       const inicioLectura = parseFecha(ultimaLectura.inicio);
       if (inicioLectura) {
         if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
           const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-          if (finTurno) {
-            tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
-          }
+          tiempoCodigoMs = finTurno ? Math.max(finTurno.getTime() - inicioLectura.getTime(), 0) : 0;
         } else {
           tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
         }
@@ -368,7 +376,6 @@ async function cargar(){
       legajo = ultimoEvento.operario || "-";
       nombre = mapaOperarios[String(ultimoEvento.operario)] || "-";
 
-      // conservar último producto leído antes del cierre
       const ultimaLecturaPrev = [...regsPuesto]
         .reverse()
         .find(r => ['lectura','continuacion','cambio_operario'].includes((r.tipo_registro || '').toLowerCase()));
@@ -444,7 +451,7 @@ function iniciar(){
 }
 
 async function reiniciarDashboard(){
-  const ts = timestampArgentinaParaDB();
+  const ts = new Date().toISOString();
 
   const { error } = await supabaseClient
     .from('dashboard_control')
