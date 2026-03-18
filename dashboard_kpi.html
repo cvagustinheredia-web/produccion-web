@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KPI INDUSTRIALES</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+:root{
+  --bg:#eef3f7;
+  --card:#ffffff;
+  --border:#d8e1ea;
+  --text:#17324a;
+  --muted:#6f8294;
+  --blue:#1f78d1;
+  --green:#1fa15a;
+  --red:#d64545;
+  --orange:#e58b1b;
+  --gray:#8391a0;
+  --shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  padding:24px;
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(180deg,#edf2f7 0%, #e7edf4 100%);
+  color:var(--text);
+}
+
+.header{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:20px;
+  margin-bottom:24px;
+}
+
+.header-left h1{
+  margin:0;
+  font-size:38px;
+  font-weight:900;
+}
+
+.header-left p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:16px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.logo{
+  height:80px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:6px;
+  box-shadow:var(--shadow);
+}
+
+.top-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.info-reset{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 14px;
+  box-shadow:var(--shadow);
+  font-size:14px;
+  font-weight:700;
+  color:var(--muted);
+}
+
+.buttons{
+  display:flex;
+  gap:10px;
+}
+
+.btn{
+  border:none;
+  border-radius:10px;
+  padding:12px 16px;
+  font-weight:800;
+  cursor:pointer;
+  color:#fff;
+}
+
+.refresh{ background:var(--blue); }
+.reset{ background:var(--orange); }
+
+.section-title{
+  margin:28px 0 14px;
+  font-size:28px;
+  font-weight:900;
+  color:var(--text);
+  text-transform:uppercase;
+}
+
+.grid-sectores{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:16px;
+}
+
+.grid-lineas{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:16px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+
+.card h3{
+  margin:0 0 14px;
+  font-size:24px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.kpi-row{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  margin-top:12px;
+}
+
+.kpi{
+  background:#f7fafc;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+}
+
+.kpi .label{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.kpi .value{
+  font-size:24px;
+  font-weight:900;
+  color:var(--text);
+}
+
+.estado-bad{
+  color:var(--red);
+}
+.estado-good{
+  color:var(--green);
+}
+.estado-mid{
+  color:var(--orange);
+}
+
+.linea-chip{
+  display:inline-block;
+  border-radius:999px;
+  padding:8px 12px;
+  font-weight:800;
+  font-size:13px;
+  margin-bottom:12px;
+  color:#fff;
+}
+
+.chip-motor{ background:var(--blue); }
+.chip-viesa{ background:var(--green); }
+.chip-varios{ background:var(--orange); }
+
+@media (max-width:1200px){
+  .grid-sectores,
+  .grid-lineas{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media (max-width:800px){
+  .grid-sectores,
+  .grid-lineas{
+    grid-template-columns:1fr;
+  }
+
+  .top-actions{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>KPI INDUSTRIALES</h1>
+    <p>Resumen por sector y por línea</p>
+  </div>
+  <img src="logo_colven.png" alt="Colven" class="logo">
+</div>
+
+<div class="top-actions">
+  <div class="info-reset" id="infoReset">REINICIO GLOBAL: SIN CONFIGURAR</div>
+  <div class="buttons">
+    <button class="btn refresh" onclick="cargar()">ACTUALIZAR</button>
+    <button class="btn reset" onclick="reiniciarDashboard()">REINICIAR</button>
+  </div>
+</div>
+
+<div class="section-title">SECTORES</div>
+<div class="grid-sectores" id="gridSectores"></div>
+
+<div class="section-title">LÍNEAS DE MOIE</div>
+<div class="grid-lineas" id="gridLineas"></div>
+
+<script>
+const supabaseClient = supabase.createClient(
+  "https://gqlftpalwqybyywdplei.supabase.co",
+  "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
+);
+
+let intervalo = null;
+
+const SECTORES = [
+  "MOV",
+  "TORNERIA",
+  "MECANIZADO",
+  "MOIE",
+  "VIESA",
+  "INYECCION"
+];
+
+const LINEAS_MOIE = [
+  "LINEA MOTOR",
+  "LINEA VIESA",
+  "LINEA VARIOS"
+];
+
+function parseFecha(valor){
+  if(!valor) return null;
+  const d = new Date(valor);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatHoraArgentina(fecha){
+  if(!fecha) return "SIN CONFIGURAR";
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(fecha);
+}
+
+function format(ms){
+  if(!ms || ms < 0 || isNaN(ms)) ms = 0;
+  const totalSeg = Math.floor(ms / 1000);
+  const horas = Math.floor(totalSeg / 3600);
+  const minutos = Math.floor((totalSeg % 3600) / 60);
+  const segundos = totalSeg % 60;
+  return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
+}
+
+async function obtenerControl(){
+  const { data, error } = await supabaseClient
+    .from('dashboard_control')
+    .select('id, reset_desde, sesion_actual')
+    .eq('id', 1)
+    .single();
+
+  if(error){
+    console.log(error);
+    return { reset_desde: null, sesion_actual: 1 };
+  }
+
+  return {
+    reset_desde: data?.reset_desde ? parseFecha(data.reset_desde) : null,
+    sesion_actual: data?.sesion_actual || 1
+  };
+}
+
+async function actualizarInfoReset(){
+  const control = await obtenerControl();
+  document.getElementById("infoReset").innerText =
+    control.reset_desde
+      ? "REINICIO GLOBAL DESDE: " + formatHoraArgentina(control.reset_desde)
+      : "REINICIO GLOBAL: SIN CONFIGURAR";
+}
+
+function calcularKpiGrupo(regs){
+  const piezas = regs.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+
+  const activosProd = regs.filter(r =>
+    (r.estado || '').toLowerCase() === 'produciendo' && r.fin == null
+  );
+
+  const activosParada = regs.filter(r =>
+    (r.estado || '').toLowerCase() === 'parado' && r.fin == null
+  );
+
+  const puestosProduciendo = new Set(activosProd.map(r => `${r.linea}::${r.puesto}`)).size;
+  const puestosParados = new Set(activosParada.map(r => `${r.linea}::${r.puesto}`)).size;
+
+  const todosPuestosConActividad = new Set(
+    regs.map(r => `${r.linea}::${r.puesto}`)
+  ).size;
+
+  const puestosEsperando = Math.max(todosPuestosConActividad - puestosProduciendo - puestosParados, 0);
+
+  const operariosActivos = new Set(
+    [...activosProd, ...activosParada]
+      .map(r => r.operario)
+      .filter(Boolean)
+  ).size;
+
+  let tiempoParadaMs = 0;
+  regs.forEach(r => {
+    if ((r.estado || '').toLowerCase() !== 'parado') return;
+    const inicio = parseFecha(r.inicio);
+    const fin = parseFecha(r.fin);
+    if (!inicio) return;
+    if (fin) tiempoParadaMs += Math.max(fin.getTime() - inicio.getTime(), 0);
+    else tiempoParadaMs += Math.max(Date.now() - inicio.getTime(), 0);
+  });
+
+  let tiempoPromedioMs = 0;
+  const lecturas = regs.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+  if (lecturas.length > 0) {
+    let suma = 0;
+    let cantidad = 0;
+    lecturas.forEach(r => {
+      const inicio = parseFecha(r.inicio);
+      const fin = parseFecha(r.fin);
+      if (inicio && fin) {
+        suma += Math.max(fin.getTime() - inicio.getTime(), 0);
+        cantidad++;
+      }
+    });
+    if (cantidad > 0) tiempoPromedioMs = suma / cantidad;
+  }
+
+  return {
+    piezas,
+    puestosProduciendo,
+    puestosParados,
+    puestosEsperando,
+    operariosActivos,
+    tiempoParadaMs,
+    tiempoPromedioMs
+  };
+}
+
+function semaforoSector(kpi){
+  if (kpi.puestosParados > 0) return ['ATENCIÓN', 'estado-bad'];
+  if (kpi.puestosProduciendo > 0) return ['OPERANDO', 'estado-good'];
+  return ['SIN ACTIVIDAD', 'estado-mid'];
+}
+
+function renderSectorCard(nombre, kpi){
+  const [estadoTexto, estadoClase] = semaforoSector(kpi);
+
+  return `
+    <div class="card">
+      <h3>${nombre}</h3>
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="label">PIEZAS</div>
+          <div class="value">${kpi.piezas}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">OPERARIOS ACTIVOS</div>
+          <div class="value">${kpi.operariosActivos}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">PUESTOS PRODUCIENDO</div>
+          <div class="value">${kpi.puestosProduciendo}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">PUESTOS PARADOS</div>
+          <div class="value">${kpi.puestosParados}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">PUESTOS ESPERANDO</div>
+          <div class="value">${kpi.puestosEsperando}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">ESTADO GENERAL</div>
+          <div class="value ${estadoClase}" style="font-size:20px;">${estadoTexto}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">TIEMPO PARADA</div>
+          <div class="value" style="font-size:20px;">${format(kpi.tiempoParadaMs)}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">TIEMPO PROM. PIEZA</div>
+          <div class="value" style="font-size:20px;">${format(kpi.tiempoPromedioMs)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLineaCard(nombre, kpi){
+  let chipClass = 'chip-varios';
+  if (nombre === 'LINEA MOTOR') chipClass = 'chip-motor';
+  if (nombre === 'LINEA VIESA') chipClass = 'chip-viesa';
+
+  const [estadoTexto, estadoClase] = semaforoSector(kpi);
+
+  return `
+    <div class="card">
+      <div class="linea-chip ${chipClass}">${nombre}</div>
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="label">PIEZAS</div>
+          <div class="value">${kpi.piezas}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">OPERARIOS ACTIVOS</div>
+          <div class="value">${kpi.operariosActivos}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">PRODUCIENDO</div>
+          <div class="value">${kpi.puestosProduciendo}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">PARADOS</div>
+          <div class="value">${kpi.puestosParados}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">TIEMPO PARADA</div>
+          <div class="value" style="font-size:20px;">${format(kpi.tiempoParadaMs)}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">ESTADO</div>
+          <div class="value ${estadoClase}" style="font-size:20px;">${estadoTexto}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function cargar(){
+  const { data: reg = [], error: errReg } = await supabaseClient
+    .from('registros')
+    .select('*');
+
+  if(errReg){
+    console.log(errReg);
+    return;
+  }
+
+  const control = await obtenerControl();
+  const sesionActual = control.sesion_actual;
+
+  const regsSesion = reg.filter(r => Number(r.sesion_dashboard || 1) === Number(sesionActual));
+
+  // Sectores
+  let htmlSectores = '';
+  SECTORES.forEach((sector) => {
+    const regsSector = regsSesion.filter(r => (r.sector || '') === sector);
+    const kpi = calcularKpiGrupo(regsSector);
+    htmlSectores += renderSectorCard(sector, kpi);
+  });
+  document.getElementById('gridSectores').innerHTML = htmlSectores;
+
+  // Líneas de MOIE
+  const regsMoie = regsSesion.filter(r => (r.sector || '') === 'MOIE');
+  let htmlLineas = '';
+  LINEAS_MOIE.forEach((linea) => {
+    const regsLinea = regsMoie.filter(r => (r.linea || '') === linea);
+    const kpi = calcularKpiGrupo(regsLinea);
+    htmlLineas += renderLineaCard(linea, kpi);
+  });
+  document.getElementById('gridLineas').innerHTML = htmlLineas;
+
+  await actualizarInfoReset();
+}
+
+function iniciar(){
+  if (intervalo) clearInterval(intervalo);
+  cargar();
+  intervalo = setInterval(cargar, 3000);
+}
+
+async function reiniciarDashboard(){
+  const { data: control, error: errControl } = await supabaseClient
+    .from('dashboard_control')
+    .select('sesion_actual')
+    .eq('id', 1)
+    .single();
+
+  if (errControl) {
+    alert("Error leyendo sesión actual");
+    console.log(errControl);
+    return;
+  }
+
+  const nuevaSesion = (control?.sesion_actual || 1) + 1;
+  const ts = new Date().toISOString();
+
+  const { error: errUpdate } = await supabaseClient
+    .from('dashboard_control')
+    .upsert(
+      [{ id: 1, reset_desde: ts, sesion_actual: nuevaSesion }],
+      { onConflict: 'id' }
+    );
+
+  if (errUpdate) {
+    alert("Error reiniciando dashboard");
+    console.log(errUpdate);
+    return;
+  }
+
+  clearInterval(intervalo);
+  document.getElementById("gridSectores").innerHTML = "";
+  document.getElementById("gridLineas").innerHTML = "";
+  setTimeout(() => iniciar(), 300);
+}
+
+iniciar();
+</script>
+
+</body>
+</html>
