@@ -17,9 +17,7 @@
       --red:#d64545;
       --white:#ffffff;
     }
-
     *{ box-sizing:border-box; }
-
     body{
       margin:0;
       font-family:Arial, Helvetica, sans-serif;
@@ -27,14 +25,12 @@
       color:var(--text);
       padding:24px;
     }
-
     .container{
       max-width:1100px;
       margin:0 auto;
       display:grid;
       gap:20px;
     }
-
     .card{
       background:var(--panel);
       border:1px solid var(--border);
@@ -42,34 +38,10 @@
       padding:22px;
       box-shadow:0 10px 30px rgba(0,0,0,.25);
     }
-
-    .header-title{
-      font-size:34px;
-      font-weight:800;
-      margin:0 0 8px 0;
-    }
-
-    .section-title{
-      font-size:28px;
-      font-weight:800;
-      margin:0 0 6px 0;
-    }
-
-    .mini-title{
-      font-size:20px;
-      font-weight:800;
-      margin:18px 0 10px 0;
-      text-transform:uppercase;
-    }
-
-    .label{
-      display:block;
-      font-size:13px;
-      color:var(--muted);
-      margin-bottom:8px;
-      text-transform:uppercase;
-    }
-
+    .header-title{ font-size:34px; font-weight:800; margin:0 0 8px 0; }
+    .section-title{ font-size:28px; font-weight:800; margin:0 0 6px 0; }
+    .mini-title{ font-size:20px; font-weight:800; margin:18px 0 10px 0; text-transform:uppercase; }
+    .label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; }
     input{
       width:100%;
       max-width:360px;
@@ -81,7 +53,6 @@
       font-size:20px;
       outline:none;
     }
-
     .btn{
       border:none;
       border-radius:12px;
@@ -91,32 +62,13 @@
       font-weight:700;
       color:white;
     }
-
     .btn-primary{ background:var(--blue); }
     .btn-success{ background:var(--green); }
     .btn-gray{ background:#425160; }
-
-    .grupo-botones{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    .btn-puesto{
-      min-width:110px;
-      background:#354252;
-      color:#dce5ee;
-    }
-
-    .btn-puesto.activo{
-      background:var(--blue);
-    }
-
-    .bloqueado{
-      pointer-events:none;
-      opacity:.65;
-    }
-
+    .grupo-botones{ display:flex; flex-wrap:wrap; gap:10px; }
+    .btn-puesto{ min-width:110px; background:#354252; color:#dce5ee; }
+    .btn-puesto.activo{ background:var(--blue); }
+    .bloqueado{ pointer-events:none; opacity:.65; }
     .status-box{
       min-width:280px;
       padding:18px 20px;
@@ -128,38 +80,32 @@
       margin-top:18px;
       display:inline-block;
     }
-
     .esperando{ background:#66707c; }
     .produciendo{ background:#1fb263; }
     .parado{ background:#d64545; }
-
     .info-grid{
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap:14px;
       margin-top:18px;
     }
-
     .info-card{
       background:var(--panel-2);
       border:1px solid var(--border);
       border-radius:14px;
       padding:16px;
     }
-
     .info-card .k{
       color:var(--muted);
       font-size:13px;
       text-transform:uppercase;
       margin-bottom:8px;
     }
-
     .info-card .v{
       font-size:24px;
       font-weight:800;
       word-break:break-word;
     }
-
     .tag{
       display:inline-block;
       background:#24303d;
@@ -170,7 +116,6 @@
       font-size:14px;
       font-weight:700;
     }
-
     .row{
       display:flex;
       flex-wrap:wrap;
@@ -178,15 +123,8 @@
       align-items:center;
       justify-content:space-between;
     }
-
-    .continuar-wrap{
-      margin-top:14px;
-      display:none;
-    }
-
-    .continuar-wrap.show{
-      display:block;
-    }
+    .continuar-wrap{ margin-top:14px; display:none; }
+    .continuar-wrap.show{ display:block; }
   </style>
 </head>
 <body>
@@ -268,7 +206,6 @@ const supabaseClient = supabase.createClient(
 let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
-let productoEnCurso = null;
 
 async function buscarOperario() {
   const legajo = document.getElementById('legajo').value.trim();
@@ -432,7 +369,8 @@ async function scan() {
       inicio: ahora,
       fin: null,
       estado: 'produciendo',
-      motivo_parada: null
+      motivo_parada: null,
+      tipo_registro: 'lectura'
     });
 
   if (error) {
@@ -440,8 +378,6 @@ async function scan() {
     alert("Error al guardar producción");
     return;
   }
-
-  productoEnCurso = qr;
 
   document.getElementById('productoActual').innerText = qr;
   document.getElementById('inicioActual').innerText = formatearFechaArgentina(ahora);
@@ -484,7 +420,8 @@ async function registrarParada(motivo) {
       inicio: ahora,
       fin: null,
       estado: 'parado',
-      motivo_parada: motivo
+      motivo_parada: motivo,
+      tipo_registro: 'parada'
     });
 
   if (error) {
@@ -493,7 +430,6 @@ async function registrarParada(motivo) {
     return;
   }
 
-  productoEnCurso = prodActiva.producto;
   document.getElementById('ultimaParada').innerText = motivo;
   document.getElementById('continuarWrap').classList.add('show');
   setEstado('parado');
@@ -527,7 +463,8 @@ async function continuarProduccion() {
       inicio: ahora,
       fin: null,
       estado: 'produciendo',
-      motivo_parada: null
+      motivo_parada: null,
+      tipo_registro: 'continuacion'
     });
 
   if (error) {
@@ -536,8 +473,7 @@ async function continuarProduccion() {
     return;
   }
 
-  productoEnCurso = paradaActiva.producto;
-  document.getElementById('productoActual').innerText = productoEnCurso;
+  document.getElementById('productoActual').innerText = paradaActiva.producto;
   document.getElementById('inicioActual').innerText = formatearFechaArgentina(ahora);
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
