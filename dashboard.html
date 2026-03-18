@@ -11,7 +11,6 @@
   --green:#1f8f53;
   --gray:#7b8590;
   --red:#c73b3b;
-  --white:#fff;
   --overlay:rgba(255,255,255,0.12);
 }
 
@@ -24,25 +23,23 @@ body{
 }
 
 .header{
-  display:grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items:start;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
   margin-bottom:8px;
 }
 
 .header-left{
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  align-items:flex-start;
-  padding-top:10px;
+  width:220px;
 }
 
 .header-center{
+  flex:1;
   text-align:center;
 }
 
 .header-right{
+  width:220px;
   display:flex;
   justify-content:flex-end;
   align-items:flex-start;
@@ -56,12 +53,19 @@ h1{
   font-size:48px;
   margin:0;
   font-weight:900;
+  text-align:center;
+}
+
+.subtitulo-row{
+  margin-top:10px;
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
 }
 
 .subtitulo{
   text-align:left;
   font-size:24px;
-  margin-top:10px;
   font-weight:700;
 }
 
@@ -82,9 +86,7 @@ h1{
 .esperando{ background:var(--gray);}
 .parado{ background:var(--red);}
 
-.blink{
-  animation:blink 1s infinite;
-}
+.blink{ animation:blink 1s infinite; }
 
 @keyframes blink{
   50%{opacity:0.4;}
@@ -167,16 +169,22 @@ h1{
   }
 
   .header{
-    grid-template-columns: 1fr;
+    flex-direction:column;
     gap:12px;
   }
 
   .header-left,
   .header-center,
   .header-right{
+    width:100%;
+    display:flex;
     justify-content:center;
     align-items:center;
     text-align:center;
+  }
+
+  .subtitulo-row{
+    justify-content:center;
   }
 
   .subtitulo{
@@ -189,9 +197,7 @@ h1{
 <body>
 
 <div class="header">
-  <div class="header-left">
-    <div class="subtitulo">LINEA MOTOR</div>
-  </div>
+  <div class="header-left"></div>
 
   <div class="header-center">
     <h1>MOIE</h1>
@@ -200,6 +206,10 @@ h1{
   <div class="header-right">
     <img src="logo_colven.png" alt="Colven">
   </div>
+</div>
+
+<div class="subtitulo-row">
+  <div class="subtitulo">LINEA MOTOR</div>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -219,7 +229,6 @@ const supabaseClient = supabase.createClient(
 
 let intervalo;
 
-// ---------- utilidades de fecha ----------
 function parseFecha(valor){
   if(!valor) return null;
   const f = new Date(valor);
@@ -240,19 +249,6 @@ function formatHoraArgentina(fecha){
   }).format(fecha);
 }
 
-function msDiff(inicio, fin){
-  const i = parseFecha(inicio);
-  const f = parseFecha(fin);
-  if(!i || !f) return 0;
-  return Math.max(f.getTime() - i.getTime(), 0);
-}
-
-function msNow(inicio){
-  const i = parseFecha(inicio);
-  if(!i) return 0;
-  return Math.max(Date.now() - i.getTime(), 0);
-}
-
 function format(ms){
   if(!ms || ms < 0 || isNaN(ms)) ms = 0;
   const s = Math.floor(ms/1000);
@@ -262,24 +258,12 @@ function format(ms){
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(seg).padStart(2,'0')}`;
 }
 
-function fechaMayor(a,b){
-  if(!a) return b;
-  if(!b) return a;
-  return a > b ? a : b;
-}
-
-// ---------- reset global ----------
 async function obtenerResetGlobal(){
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from('dashboard_control')
     .select('*')
     .eq('id', 1)
     .single();
-
-  if(error){
-    console.log(error);
-    return null;
-  }
 
   return data?.reset_desde ? parseFecha(data.reset_desde) : null;
 }
@@ -292,35 +276,35 @@ async function actualizarInfoReset(){
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
-// ---------- carga dashboard ----------
 async function cargar(){
-  const { data: reg = [], error: errReg } = await supabaseClient
+  const { data: reg = [] } = await supabaseClient
     .from('registros')
     .select('*')
     .order('inicio', { ascending: true });
 
-  const { data: ops = [], error: errOps } = await supabaseClient
+  const { data: ops = [] } = await supabaseClient
     .from('operarios')
     .select('*');
-
-  if (errReg || errOps) {
-    console.log(errReg || errOps);
-    return;
-  }
 
   const resetDesde = await obtenerResetGlobal();
 
   const mapa = {};
-  ops.forEach(o => {
-    mapa[String(o.legajo)] = o.nombre;
-  });
+  ops.forEach(o => mapa[String(o.legajo)] = o.nombre);
 
   let html = "";
 
   for(let p = 1; p <= 6; p++){
     const regs = reg.filter(x => Number(x.puesto) === p);
-    const ultimo = regs.length ? regs[regs.length - 1] : null;
-    const activo = regs.find(x => x.fin == null);
+
+    const regsDesdeReset = regs.filter(x => {
+      const inicio = parseFecha(x.inicio);
+      return !resetDesde || (inicio && inicio >= resetDesde);
+    });
+
+    const activo = regsDesdeReset.find(x => x.fin == null && (x.estado || '').toLowerCase() === 'produciendo');
+    const paradaActiva = regsDesdeReset.find(x => x.fin == null && (x.estado || '').toLowerCase() === 'parado');
+    const ultimo = regsDesdeReset.length ? regsDesdeReset[regsDesdeReset.length - 1] : null;
+    const primero = regsDesdeReset.length ? regsDesdeReset[0] : null;
 
     let estado = "ESPERANDO";
     let clase = "esperando";
@@ -330,110 +314,60 @@ async function cargar(){
     let producto = "-";
     let motivo = "-";
 
-    let prodMs = 0;
-    let paradaMs = 0;
-    let actualMs = 0;
-    let piezas = 0;
+    let tiempoTotalMs = 0;
+    let tiempoParadaMs = 0;
+    let tiempoCodigoMs = 0;
+    let piezas = regsDesdeReset.filter(x => (x.estado || '').toLowerCase() === 'produciendo').length;
 
-    regs.forEach(x => {
+    if (primero) {
+      tiempoTotalMs = Date.now() - parseFecha(primero.inicio).getTime();
+      if (tiempoTotalMs < 0) tiempoTotalMs = 0;
+    }
+
+    regsDesdeReset.forEach(x => {
       const inicio = parseFecha(x.inicio);
       const fin = parseFecha(x.fin);
       if (!inicio) return;
 
-      // ignora completamente registros que terminaron antes del reset
-      if (resetDesde && inicio < resetDesde && (!fin || fin <= resetDesde)) {
-        return;
-      }
+      const estadoReg = (x.estado || '').toLowerCase();
 
-      const inicioEfectivo = resetDesde ? fechaMayor(inicio, resetDesde) : inicio;
-      const finEfectivo = fin ? fin : new Date();
-      const ms = Math.max(finEfectivo.getTime() - inicioEfectivo.getTime(), 0);
-
-      const estadoReg = (x.estado || "").toLowerCase();
-
-      if (estadoReg === "parado") {
-        paradaMs += ms;
-      } else {
-        prodMs += ms;
-
-        // solo cuenta como código en curso si arrancó después del reset
-        if (!x.fin && (!resetDesde || inicio >= resetDesde)) {
-          actualMs = ms;
-        }
-      }
-
-      // piezas solo desde reset
-      if (estadoReg !== "parado") {
-        if (!resetDesde || inicio >= resetDesde) {
-          piezas += 1;
+      if (estadoReg === 'parado') {
+        if (fin) {
+          tiempoParadaMs += Math.max(fin.getTime() - inicio.getTime(), 0);
+        } else {
+          tiempoParadaMs += Math.max(Date.now() - inicio.getTime(), 0);
         }
       }
     });
 
-    // PRODUCCION solo si hay activo que empezó después del reset
     if (activo) {
-      const inicioActivo = parseFecha(activo.inicio);
-
-      if (!resetDesde || (inicioActivo && inicioActivo >= resetDesde)) {
-        estado = "PRODUCCION";
-        clase = "produciendo";
-        legajo = activo.operario || "-";
-        nombre = mapa[String(activo.operario)] || "-";
-        producto = activo.producto || "-";
-      }
+      estado = "PRODUCCION";
+      clase = "produciendo";
+      legajo = activo.operario || "-";
+      nombre = mapa[String(activo.operario)] || "-";
+      producto = activo.producto || "-";
+      tiempoCodigoMs = Math.max(Date.now() - parseFecha(activo.inicio).getTime(), 0);
+    } else if (paradaActiva) {
+      estado = "PARADO";
+      clase = "parado";
+      blink = "blink";
+      legajo = paradaActiva.operario || "-";
+      nombre = mapa[String(paradaActiva.operario)] || "-";
+      producto = paradaActiva.producto || "-";
+      motivo = paradaActiva.motivo_parada || "-";
+      tiempoCodigoMs = 0;
+    } else if (ultimo) {
+      legajo = ultimo.operario || "-";
+      nombre = mapa[String(ultimo.operario)] || "-";
     }
 
-    // PARADO solo si la parada tiene efecto después del reset
-    if (ultimo && (ultimo.estado || "").toLowerCase() === "parado") {
-      const inicioUlt = parseFecha(ultimo.inicio);
-      const finUlt = parseFecha(ultimo.fin);
-
-      const mostrarParado = !resetDesde || (
-        inicioUlt && (
-          inicioUlt >= resetDesde ||
-          (finUlt && finUlt > resetDesde)
-        )
-      );
-
-      const activoValidoPostReset = activo && parseFecha(activo.inicio) && (!resetDesde || parseFecha(activo.inicio) >= resetDesde);
-
-      if (mostrarParado && !activoValidoPostReset) {
-        estado = "PARADO";
-        clase = "parado";
-        blink = "blink";
-        legajo = ultimo.operario || "-";
-        nombre = mapa[String(ultimo.operario)] || "-";
-        producto = ultimo.producto || "-";
-        motivo = ultimo.motivo_parada || "-";
-        actualMs = 0;
-      }
-    }
-
-    // si no hubo actividad después del reset, poner todo realmente en cero
-    const hayActividadDesdeReset = piezas > 0 || prodMs > 0 || paradaMs > 0 || actualMs > 0;
-
-    if (!hayActividadDesdeReset) {
-      estado = "ESPERANDO";
-      clase = "esperando";
-      blink = "";
-      legajo = "-";
-      nombre = "-";
-      producto = "-";
-      motivo = "-";
-      prodMs = 0;
-      paradaMs = 0;
-      actualMs = 0;
-      piezas = 0;
-    }
-
-    // objetivo por puesto
     let objetivo = null;
     if (p >= 1 && p <= 4) objetivo = 13 * 60 * 1000;
     if (p === 5) objetivo = 25 * 60 * 1000;
 
     let estadoTiempo = "";
     if (objetivo !== null) {
-      estadoTiempo = actualMs <= objetivo
+      estadoTiempo = tiempoCodigoMs <= objetivo
         ? `<span class="ok">OK</span>`
         : `<span class="mal">EXCEDIDO</span>`;
     }
@@ -451,17 +385,17 @@ async function cargar(){
 
         <div class="contador">
           TIEMPO TOTAL
-          <div class="valor">${format(prodMs)}</div>
+          <div class="valor">${format(tiempoTotalMs)}</div>
         </div>
 
         <div class="contador">
           CODIGO EN CURSO
-          <div class="valor">${format(actualMs)} ${estadoTiempo}</div>
+          <div class="valor">${format(tiempoCodigoMs)} ${estadoTiempo}</div>
         </div>
 
         <div class="contador">
           TIEMPO PARADA
-          <div class="valor">${format(paradaMs)}</div>
+          <div class="valor">${format(tiempoParadaMs)}</div>
         </div>
       </div>
     `;
@@ -471,7 +405,6 @@ async function cargar(){
   await actualizarInfoReset();
 }
 
-// ---------- controles ----------
 function iniciar(){
   if(intervalo) clearInterval(intervalo);
   cargar();
