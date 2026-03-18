@@ -11,6 +11,7 @@
   --green:#1f8f53;
   --gray:#7b8590;
   --red:#c73b3b;
+  --orange:#d9821f;
   --overlay:rgba(255,255,255,0.12);
 }
 
@@ -70,17 +71,18 @@ h1{
 .card{
   padding:16px;
   border-radius:16px;
-  min-height:430px;
+  min-height:450px;
 }
 
-.produciendo{ background:var(--green);}
-.esperando{ background:var(--gray);}
-.parado{ background:var(--red);}
+.produciendo{ background:var(--green); }
+.esperando{ background:var(--gray); }
+.parado{ background:var(--red); }
+.turno{ background:var(--orange); }
 
 .blink{ animation:blink 1s infinite; }
 
 @keyframes blink{
-  50%{opacity:0.4;}
+  50%{ opacity:0.4; }
 }
 
 .titulo{
@@ -189,10 +191,11 @@ const supabaseClient = supabase.createClient(
 
 let intervalo = null;
 
+// ---------- utilidades ----------
 function parseFecha(valor){
   if(!valor) return null;
-  const f = new Date(valor);
-  return isNaN(f.getTime()) ? null : f;
+  const fecha = new Date(valor);
+  return isNaN(fecha.getTime()) ? null : fecha;
 }
 
 function formatHoraArgentina(fecha){
@@ -222,6 +225,7 @@ function format(ms){
   return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
 }
 
+// ---------- reset global ----------
 async function obtenerResetGlobal(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
@@ -245,6 +249,7 @@ async function actualizarInfoReset(){
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
+// ---------- lógica principal ----------
 async function cargar(){
   const { data: reg = [], error: errReg } = await supabaseClient
     .from('registros')
@@ -291,15 +296,35 @@ async function cargar(){
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
 
-    // TIEMPO TOTAL = desde la primera actividad posterior al reinicio
+    // Pieza real = solo lectura nueva
+    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+
+    // Última lectura real para calcular código en curso
+    const ultimaLectura = [...regsPuesto]
+      .reverse()
+      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+
+    // Último evento del puesto
+    const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
+
+    // TIEMPO TOTAL:
+    // desde la primera actividad posterior al reinicio
+    // pero si el turno fue finalizado, congelar en ese momento
     if (regsPuesto.length > 0) {
       const inicioPrimero = parseFecha(regsPuesto[0].inicio);
       if (inicioPrimero) {
-        tiempoTotalMs = Math.max(Date.now() - inicioPrimero.getTime(), 0);
+        if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+          const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
+          if (finTurno) {
+            tiempoTotalMs = Math.max(finTurno.getTime() - inicioPrimero.getTime(), 0);
+          }
+        } else {
+          tiempoTotalMs = Math.max(Date.now() - inicioPrimero.getTime(), 0);
+        }
       }
     }
 
-    // TIEMPO PARADA = suma solo tramos de parada
+    // TIEMPO PARADA:
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -316,27 +341,41 @@ async function cargar(){
       }
     });
 
-    // Activos
-    const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
-    const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
-
-    // Última lectura real de QR (no continuación)
-    const ultimaLectura = [...regsPuesto]
-      .reverse()
-      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
-
-    // PIEZAS = cantidad de lecturas nuevas reales
-    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
-
-    // CODIGO EN CURSO = desde la última lectura, aunque esté parado
+    // TIEMPO CODIGO EN CURSO:
+    // desde la última lectura real hasta ahora,
+    // incluso si hubo paradas o continuaciones
     if (ultimaLectura) {
       const inicioLectura = parseFecha(ultimaLectura.inicio);
       if (inicioLectura) {
-        tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
+        if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+          const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
+          if (finTurno) {
+            tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
+          }
+        } else {
+          tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
+        }
       }
     }
 
-    if (activoProduccion) {
+    const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
+    const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
+
+    if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+      estado = "TURNO FINALIZADO";
+      clase = "turno";
+      blink = "";
+      legajo = ultimoEvento.operario || "-";
+      nombre = mapaOperarios[String(ultimoEvento.operario)] || "-";
+
+      // conservar último producto leído antes del cierre
+      const ultimaLecturaPrev = [...regsPuesto]
+        .reverse()
+        .find(r => ['lectura','continuacion','cambio_operario'].includes((r.tipo_registro || '').toLowerCase()));
+      if (ultimaLecturaPrev) {
+        producto = ultimaLecturaPrev.producto || "-";
+      }
+    } else if (activoProduccion) {
       estado = "PRODUCIENDO";
       clase = "produciendo";
       legajo = activoProduccion.operario || "-";
@@ -397,6 +436,7 @@ async function cargar(){
   await actualizarInfoReset();
 }
 
+// ---------- controles ----------
 function iniciar(){
   if (intervalo) clearInterval(intervalo);
   cargar();
