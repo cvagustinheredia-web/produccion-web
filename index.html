@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Linea Motor MOIE</title>
+  <title>Producción Industrial</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     :root{
       --bg:#eef3f7;
       --panel:#ffffff;
-      --panel-2:#f7f9fb;
+      --panel2:#f7f9fb;
       --text:#163047;
       --muted:#6f8091;
       --border:#d5dee7;
@@ -17,66 +17,49 @@
       --red:#d64545;
       --orange:#e58b1b;
       --gray:#7f8c98;
-      --white:#ffffff;
       --shadow:0 8px 20px rgba(0,0,0,.08);
     }
-
-    *{ box-sizing:border-box; }
-
+    *{box-sizing:border-box}
     body{
       margin:0;
+      padding:24px;
       font-family:Arial, Helvetica, sans-serif;
       background:linear-gradient(180deg,#edf2f7 0%, #e7edf4 100%);
       color:var(--text);
-      padding:24px;
     }
-
     .container{
-      max-width:1200px;
+      max-width:1250px;
       margin:0 auto;
       display:grid;
       gap:20px;
     }
-
     .topbar{
       display:grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns:1fr auto;
       align-items:center;
       gap:16px;
     }
-
-    .brand{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-
     .brand h1{
       margin:0;
       font-size:34px;
       font-weight:900;
       color:#13314a;
     }
-
     .brand p{
-      margin:0;
+      margin:4px 0 0;
       font-size:16px;
       font-weight:700;
       color:#607386;
       text-transform:uppercase;
-      letter-spacing:.6px;
     }
-
     .logo{
       height:80px;
-      object-fit:contain;
       background:#fff;
       border:1px solid var(--border);
       border-radius:12px;
       padding:6px;
       box-shadow:var(--shadow);
     }
-
     .card{
       background:var(--panel);
       border:1px solid var(--border);
@@ -84,71 +67,48 @@
       padding:22px;
       box-shadow:var(--shadow);
     }
-
-    .header-title{
+    .header-title,.section-title{
+      margin:0 0 12px;
       font-size:28px;
       font-weight:900;
-      margin:0 0 8px 0;
       color:#163047;
     }
-
-    .section-title{
-      font-size:28px;
-      font-weight:900;
-      margin:0 0 8px 0;
-      color:#163047;
-    }
-
     .mini-title{
+      margin:18px 0 10px;
       font-size:18px;
       font-weight:900;
-      margin:18px 0 10px 0;
-      color:#163047;
       text-transform:uppercase;
-      letter-spacing:.4px;
+      color:#163047;
     }
-
     .label{
       display:block;
       font-size:13px;
       color:var(--muted);
       margin-bottom:8px;
       text-transform:uppercase;
-      letter-spacing:.4px;
+      font-weight:700;
     }
-
-    .row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-    }
-
-    .input-row{
+    .input-row,.row,.actions,.grupo-botones{
       display:flex;
       flex-wrap:wrap;
       gap:12px;
       align-items:flex-end;
     }
-
-    input{
+    input,select{
       width:100%;
       max-width:360px;
-      background:var(--panel-2);
+      background:var(--panel2);
       color:var(--text);
       border:1px solid var(--border);
       border-radius:12px;
       padding:14px 16px;
-      font-size:20px;
+      font-size:18px;
       outline:none;
     }
-
-    input:focus{
+    input:focus,select:focus{
       border-color:var(--blue);
       box-shadow:0 0 0 3px rgba(31,120,209,.12);
     }
-
     .btn{
       border:none;
       border-radius:12px;
@@ -156,38 +116,23 @@
       cursor:pointer;
       font-size:15px;
       font-weight:800;
-      color:white;
+      color:#fff;
       min-height:50px;
     }
-
-    .btn-primary{ background:var(--blue); }
-    .btn-success{ background:var(--green); }
-    .btn-danger{ background:var(--red); }
-    .btn-orange{ background:var(--orange); }
-    .btn-gray{ background:#7a8895; }
-
-    .grupo-botones{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
+    .btn-primary{background:var(--blue)}
+    .btn-success{background:var(--green)}
+    .btn-orange{background:var(--orange)}
+    .btn-gray{background:#7a8895}
     .btn-puesto{
-      min-width:110px;
+      min-width:120px;
       background:#dce7f2;
       color:#1c3e5c;
     }
-
     .btn-puesto.activo{
       background:var(--blue);
       color:#fff;
     }
-
-    .bloqueado{
-      pointer-events:none;
-      opacity:.6;
-    }
-
+    .bloqueado{pointer-events:none;opacity:.6}
     .tag{
       display:inline-block;
       background:#edf4fb;
@@ -198,7 +143,6 @@
       font-size:14px;
       font-weight:800;
     }
-
     .status-box{
       min-width:280px;
       padding:18px 20px;
@@ -206,31 +150,27 @@
       font-size:22px;
       font-weight:900;
       text-align:center;
-      color:white;
+      color:#fff;
       margin-top:18px;
       display:inline-block;
       box-shadow:var(--shadow);
     }
-
-    .esperando{ background:#8391a0; }
-    .produciendo{ background:#1fa15a; }
-    .parado{ background:#d64545; }
-    .turno{ background:#e58b1b; }
-
+    .esperando{background:#8391a0}
+    .produciendo{background:#1fa15a}
+    .parado{background:#d64545}
+    .turno{background:#e58b1b}
     .info-grid{
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
       gap:14px;
       margin-top:18px;
     }
-
     .info-card{
-      background:var(--panel-2);
+      background:var(--panel2);
       border:1px solid var(--border);
       border-radius:14px;
       padding:16px;
     }
-
     .info-card .k{
       color:var(--muted);
       font-size:13px;
@@ -238,57 +178,44 @@
       margin-bottom:8px;
       font-weight:700;
     }
-
     .info-card .v{
       font-size:24px;
       font-weight:900;
       color:#163047;
       word-break:break-word;
     }
-
-    .help{
-      color:var(--muted);
-      font-size:13px;
-      margin-top:8px;
-    }
-
-    .actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:14px;
-    }
-
-    .continuar-wrap{
-      display:none;
-      margin-top:14px;
-    }
-
-    .continuar-wrap.show{
-      display:block;
-    }
+    .help{color:var(--muted);font-size:13px;margin-top:8px}
+    .continuar-wrap{display:none;margin-top:14px}
+    .continuar-wrap.show{display:block}
   </style>
 </head>
 <body>
   <div class="container">
-
     <div class="topbar">
       <div class="brand">
         <h1>MOIE</h1>
-        <p>Línea Motor</p>
+        <p>Gestión de producción</p>
       </div>
       <img src="logo_colven.png" alt="Colven" class="logo">
     </div>
 
     <div class="card">
       <h2 class="header-title">INGRESE SU LEGAJO</h2>
-
       <div class="input-row">
         <div>
           <label class="label">LEGAJO</label>
           <input id="legajo" placeholder="Ingresar o escanear legajo" oninput="buscarOperario()" onkeydown="capturarEnterLegajo(event)">
           <div id="nombreOperario" style="font-size:22px;font-weight:900;margin-top:12px;color:#163047;"></div>
-          <div class="help">Podés escribirlo manualmente o leerlo con QR. Al presionar Enter ingresa automáticamente.</div>
+          <div class="help">Podés escribirlo manualmente o leerlo con QR. Enter ingresa automáticamente.</div>
+        </div>
+
+        <div>
+          <label class="label">LÍNEA</label>
+          <select id="linea" onchange="cambiarLinea()">
+            <option value="LINEA MOTOR">LINEA MOTOR</option>
+            <option value="LINEA VIESA">LINEA VIESA</option>
+            <option value="LINEA VARIOS">LINEA VARIOS</option>
+          </select>
         </div>
 
         <div class="actions">
@@ -302,18 +229,12 @@
 
       <div class="row">
         <div class="tag" id="operarioActivo">OPERARIO: -</div>
-        <div class="tag" id="puestoSeleccionadoTexto">PUESTO SELECCIONADO: NINGUNO</div>
+        <div class="tag" id="lineaSeleccionadaTexto">LÍNEA: LINEA MOTOR</div>
+        <div class="tag" id="puestoSeleccionadoTexto">PUESTO: NINGUNO</div>
       </div>
 
       <div class="mini-title">Seleccionar puesto</div>
-      <div id="puestos" class="grupo-botones">
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(1)">PUESTO 1</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(2)">PUESTO 2</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(3)">PUESTO 3</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(4)">PUESTO 4</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(5)">PUESTO 5</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(6)">PROBADOR</button>
-      </div>
+      <div id="puestos" class="grupo-botones"></div>
 
       <div class="mini-title">Escanear QR</div>
       <label class="label">LECTURA DEL PRODUCTO</label>
@@ -326,7 +247,7 @@
         <button class="btn btn-gray" onclick="registrarParada('Descanso (Desayuno)')">DESCANSO (DESAYUNO)</button>
         <button class="btn btn-gray" onclick="registrarParada('Descanso (Almuerzo)')">DESCANSO (ALMUERZO)</button>
         <button class="btn btn-gray" onclick="registrarParada('Ing.Procesos')">ING.PROCESOS</button>
-        <button class="btn btn-gray" onclick="registrarParada('Logistica')">LOGISTICA</button>
+        <button class="btn btn-gray" onclick="registrarParada('Logistica')">LOGÍSTICA</button>
       </div>
 
       <div class="actions">
@@ -344,12 +265,10 @@
           <div class="k">PRODUCTO EN CURSO</div>
           <div class="v" id="productoActual">-</div>
         </div>
-
         <div class="info-card">
           <div class="k">INICIO LECTURA ACTUAL</div>
           <div class="v" id="inicioActual">-</div>
         </div>
-
         <div class="info-card">
           <div class="k">ÚLTIMA PARADA</div>
           <div class="v" id="ultimaParada">-</div>
@@ -364,9 +283,36 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
+const LINEAS = {
+  "LINEA MOTOR": [
+    { valor: 1, texto: "PUESTO 1" },
+    { valor: 2, texto: "PUESTO 2" },
+    { valor: 3, texto: "PUESTO 3" },
+    { valor: 4, texto: "PUESTO 4" },
+    { valor: 5, texto: "PUESTO 5" },
+    { valor: 6, texto: "PROBADOR" }
+  ],
+  "LINEA VIESA": [
+    { valor: 1, texto: "PUESTO 1" },
+    { valor: 2, texto: "PUESTO 2" },
+    { valor: 3, texto: "PUESTO 3" },
+    { valor: 4, texto: "PUESTO 4" }
+  ],
+  "LINEA VARIOS": [
+    { valor: 1, texto: "PUESTO 1" },
+    { valor: 2, texto: "PUESTO 2" },
+    { valor: 3, texto: "PUESTO 3" },
+    { valor: 4, texto: "PUESTO 4" },
+    { valor: 5, texto: "PUESTO 5" },
+    { valor: 6, texto: "PUESTO 6" },
+    { valor: 7, texto: "PUESTO 7" }
+  ]
+};
+
 let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
+let lineaSeleccionada = 'LINEA MOTOR';
 
 function formatearFechaArgentina(fechaIso) {
   return new Intl.DateTimeFormat('es-AR', {
@@ -389,7 +335,6 @@ function limpiarProducto(valor) {
 function setEstado(tipo) {
   const box = document.getElementById('estadoProduccion');
   box.className = 'status-box';
-
   if (tipo === 'produciendo') {
     box.classList.add('produciendo');
     box.innerText = 'PRODUCIENDO';
@@ -419,6 +364,26 @@ function capturarEnterLegajo(event) {
   }
 }
 
+function renderPuestos() {
+  const cont = document.getElementById('puestos');
+  cont.innerHTML = '';
+  const puestos = LINEAS[lineaSeleccionada] || [];
+  puestos.forEach((p) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-puesto';
+    btn.textContent = p.texto;
+    btn.onclick = () => seleccionarPuesto(p.valor);
+    cont.appendChild(btn);
+  });
+}
+
+function cambiarLinea() {
+  if (puestoSeleccionado !== null) return;
+  lineaSeleccionada = document.getElementById('linea').value;
+  document.getElementById('lineaSeleccionadaTexto').innerText = 'LÍNEA: ' + lineaSeleccionada;
+  renderPuestos();
+}
+
 async function obtenerSesionActual() {
   const { data, error } = await supabaseClient
     .from('dashboard_control')
@@ -430,7 +395,6 @@ async function obtenerSesionActual() {
     console.log("Error obteniendo sesión actual:", error);
     return 1;
   }
-
   return data.sesion_actual || 1;
 }
 
@@ -452,11 +416,11 @@ async function buscarOperario() {
 
 async function obtenerProduccionActiva() {
   const sesionActual = await obtenerSesionActual();
-
   const { data } = await supabaseClient
     .from('registros')
     .select('*')
     .eq('puesto', puestoSeleccionado)
+    .eq('linea', lineaSeleccionada)
     .eq('estado', 'produciendo')
     .eq('sesion_dashboard', sesionActual)
     .is('fin', null)
@@ -468,11 +432,11 @@ async function obtenerProduccionActiva() {
 
 async function obtenerParadaActiva() {
   const sesionActual = await obtenerSesionActual();
-
   const { data } = await supabaseClient
     .from('registros')
     .select('*')
     .eq('puesto', puestoSeleccionado)
+    .eq('linea', lineaSeleccionada)
     .eq('estado', 'parado')
     .eq('sesion_dashboard', sesionActual)
     .is('fin', null)
@@ -497,11 +461,12 @@ async function login() {
 
   const nuevoOperario = legajo;
   const nuevoNombre = data[0].nombre;
+  lineaSeleccionada = document.getElementById('linea').value;
+  document.getElementById('lineaSeleccionadaTexto').innerText = 'LÍNEA: ' + lineaSeleccionada;
 
   if (!operario) {
     operario = nuevoOperario;
     nombre = nuevoNombre;
-
     document.getElementById('panel').style.display = 'block';
     document.getElementById('operarioActivo').innerText =
       "OPERARIO: " + nombre + " (" + operario + ")";
@@ -516,20 +481,16 @@ async function login() {
     const paradaActiva = await obtenerParadaActiva();
 
     if (prodActiva) {
-      await supabaseClient
-        .from('registros')
-        .update({
-          fin: ahora,
-          estado: 'finalizado'
-        })
+      await supabaseClient.from('registros')
+        .update({ fin: ahora, estado: 'finalizado' })
         .eq('id', prodActiva.id);
 
-      await supabaseClient
-        .from('registros')
+      await supabaseClient.from('registros')
         .insert({
           producto: prodActiva.producto,
           operario: nuevoOperario,
           puesto: prodActiva.puesto,
+          linea: prodActiva.linea,
           inicio: ahora,
           fin: null,
           estado: 'produciendo',
@@ -540,17 +501,16 @@ async function login() {
     }
 
     if (paradaActiva) {
-      await supabaseClient
-        .from('registros')
+      await supabaseClient.from('registros')
         .update({ fin: ahora })
         .eq('id', paradaActiva.id);
 
-      await supabaseClient
-        .from('registros')
+      await supabaseClient.from('registros')
         .insert({
           producto: paradaActiva.producto,
           operario: nuevoOperario,
           puesto: paradaActiva.puesto,
+          linea: paradaActiva.linea,
           inicio: ahora,
           fin: null,
           estado: 'parado',
@@ -563,7 +523,6 @@ async function login() {
 
   operario = nuevoOperario;
   nombre = nuevoNombre;
-
   document.getElementById('panel').style.display = 'block';
   document.getElementById('operarioActivo').innerText =
     "OPERARIO: " + nombre + " (" + operario + ")";
@@ -571,17 +530,16 @@ async function login() {
 
 function seleccionarPuesto(num) {
   if (puestoSeleccionado !== null) return;
-
   puestoSeleccionado = Number(num);
 
   const botones = document.querySelectorAll('.btn-puesto');
   botones.forEach(btn => btn.classList.remove('activo'));
-  botones[num - 1].classList.add('activo');
+  const idx = (LINEAS[lineaSeleccionada] || []).findIndex(p => p.valor === num);
+  if (idx >= 0) botones[idx].classList.add('activo');
 
-  document.getElementById('puestoSeleccionadoTexto').innerText =
-    "PUESTO SELECCIONADO: " + (num === 6 ? "PROBADOR" : num);
-
+  document.getElementById('puestoSeleccionadoTexto').innerText = "PUESTO: " + num;
   document.getElementById('puestos').classList.add('bloqueado');
+  document.getElementById('linea').disabled = true;
   document.getElementById('qr').focus();
 }
 
@@ -593,7 +551,6 @@ async function scan() {
     alert("PRIMERO SELECCIONÁ UN PUESTO");
     return;
   }
-
   if (!qr) return;
 
   qr = limpiarProducto(qr);
@@ -602,20 +559,13 @@ async function scan() {
 
   const paradaActiva = await obtenerParadaActiva();
   if (paradaActiva) {
-    await supabaseClient
-      .from('registros')
-      .update({ fin: ahora })
-      .eq('id', paradaActiva.id);
+    await supabaseClient.from('registros').update({ fin: ahora }).eq('id', paradaActiva.id);
   }
 
   const prodActiva = await obtenerProduccionActiva();
   if (prodActiva) {
-    await supabaseClient
-      .from('registros')
-      .update({
-        fin: ahora,
-        estado: 'finalizado'
-      })
+    await supabaseClient.from('registros')
+      .update({ fin: ahora, estado: 'finalizado' })
       .eq('id', prodActiva.id);
   }
 
@@ -625,6 +575,7 @@ async function scan() {
       producto: qr,
       operario: operario,
       puesto: puestoSeleccionado,
+      linea: lineaSeleccionada,
       inicio: ahora,
       fin: null,
       estado: 'produciendo',
@@ -644,7 +595,6 @@ async function scan() {
   document.getElementById('ultimaParada').innerText = '-';
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
-
   qrInput.value = '';
   qrInput.focus();
 }
@@ -664,12 +614,8 @@ async function registrarParada(motivo) {
   const ahora = new Date().toISOString();
   const sesionActual = await obtenerSesionActual();
 
-  await supabaseClient
-    .from('registros')
-    .update({
-      fin: ahora,
-      estado: 'finalizado'
-    })
+  await supabaseClient.from('registros')
+    .update({ fin: ahora, estado: 'finalizado' })
     .eq('id', prodActiva.id);
 
   const { error } = await supabaseClient
@@ -678,6 +624,7 @@ async function registrarParada(motivo) {
       producto: prodActiva.producto,
       operario: prodActiva.operario,
       puesto: prodActiva.puesto,
+      linea: prodActiva.linea,
       inicio: ahora,
       fin: null,
       estado: 'parado',
@@ -712,8 +659,7 @@ async function continuarProduccion() {
   const ahora = new Date().toISOString();
   const sesionActual = await obtenerSesionActual();
 
-  await supabaseClient
-    .from('registros')
+  await supabaseClient.from('registros')
     .update({ fin: ahora })
     .eq('id', paradaActiva.id);
 
@@ -723,6 +669,7 @@ async function continuarProduccion() {
       producto: paradaActiva.producto,
       operario: operario,
       puesto: paradaActiva.puesto,
+      linea: paradaActiva.linea,
       inicio: ahora,
       fin: null,
       estado: 'produciendo',
@@ -757,28 +704,23 @@ async function finalizarTurno() {
   const paradaActiva = await obtenerParadaActiva();
 
   if (prodActiva) {
-    await supabaseClient
-      .from('registros')
-      .update({
-        fin: ahora,
-        estado: 'finalizado'
-      })
+    await supabaseClient.from('registros')
+      .update({ fin: ahora, estado: 'finalizado' })
       .eq('id', prodActiva.id);
   }
 
   if (paradaActiva) {
-    await supabaseClient
-      .from('registros')
+    await supabaseClient.from('registros')
       .update({ fin: ahora })
       .eq('id', paradaActiva.id);
   }
 
-  await supabaseClient
-    .from('registros')
+  await supabaseClient.from('registros')
     .insert({
       producto: null,
       operario: operario,
       puesto: puestoSeleccionado,
+      linea: lineaSeleccionada,
       inicio: ahora,
       fin: ahora,
       estado: 'turno_finalizado',
@@ -790,6 +732,8 @@ async function finalizarTurno() {
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('turno');
 }
+
+renderPuestos();
 </script>
 </body>
 </html>
