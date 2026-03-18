@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte Excel Producción</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --bg:#eef3f7;
+      --panel:#ffffff;
+      --panel2:#f7f9fb;
+      --text:#163047;
+      --muted:#6f8091;
+      --border:#d5dee7;
+      --blue:#1f78d1;
+      --green:#1fa15a;
+      --orange:#e58b1b;
+      --red:#d64545;
+      --shadow:0 8px 20px rgba(0,0,0,.08);
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      padding:24px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,#edf2f7 0%, #e7edf4 100%);
+      color:var(--text);
+    }
+
+    .container{
+      max-width:1300px;
+      margin:0 auto;
+      display:grid;
+      gap:20px;
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:16px;
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:38px;
+      font-weight:900;
+      color:#13314a;
+    }
+
+    .brand p{
+      margin:6px 0 0;
+      font-size:16px;
+      font-weight:700;
+      color:#607386;
+      text-transform:uppercase;
+    }
+
+    .logo{
+      height:84px;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:6px;
+      box-shadow:var(--shadow);
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:22px;
+      box-shadow:var(--shadow);
+    }
+
+    .title{
+      margin:0 0 18px;
+      font-size:28px;
+      font-weight:900;
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns:repeat(6, 1fr);
+      gap:14px;
+      align-items:end;
+    }
+
+    .field label{
+      display:block;
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .field input,
+    .field select{
+      width:100%;
+      border:1px solid var(--border);
+      background:var(--panel2);
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:15px;
+      color:var(--text);
+      outline:none;
+    }
+
+    .field input:focus,
+    .field select:focus{
+      border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(31,120,209,.12);
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:12px;
+      padding:12px 18px;
+      font-weight:800;
+      color:#fff;
+      cursor:pointer;
+      min-width:160px;
+    }
+
+    .btn-search{ background:var(--blue); }
+    .btn-export{ background:var(--green); }
+    .btn-back{ background:var(--orange); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:14px;
+    }
+
+    .stat{
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+    }
+
+    .stat .k{
+      font-size:12px;
+      color:var(--muted);
+      text-transform:uppercase;
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .stat .v{
+      font-size:24px;
+      font-weight:900;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+      overflow:hidden;
+      border-radius:14px;
+    }
+
+    th, td{
+      border:1px solid var(--border);
+      padding:10px 8px;
+      text-align:left;
+    }
+
+    th{
+      background:#eaf2fb;
+      text-transform:uppercase;
+      font-size:12px;
+      color:#35526d;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    @media (max-width:1200px){
+      .filters{ grid-template-columns:repeat(3,1fr); }
+      .stats{ grid-template-columns:repeat(2,1fr); }
+    }
+
+    @media (max-width:700px){
+      .filters{ grid-template-columns:1fr; }
+      .stats{ grid-template-columns:1fr; }
+      .topbar{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <div class="brand">
+        <h1>REPORTE EXCEL DE PRODUCCIÓN</h1>
+        <p>Descarga ágil por sector, línea, puesto, fecha y turno</p>
+      </div>
+      <img src="logo_colven.png" alt="Colven" class="logo">
+    </div>
+
+    <div class="card">
+      <h2 class="title">TABLERO DE FILTROS</h2>
+
+      <div class="filters">
+        <div class="field">
+          <label>Sector</label>
+          <select id="sector" onchange="actualizarLineas()">
+            <option value="">TODOS</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Línea</label>
+          <select id="linea" onchange="actualizarPuestos()">
+            <option value="">TODAS</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Puesto</label>
+          <select id="puesto">
+            <option value="">TODOS</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="fecha">
+        </div>
+
+        <div class="field">
+          <label>Turno</label>
+          <select id="turno">
+            <option value="TODO_EL_DIA">TODO EL DÍA</option>
+            <option value="MANANA">MAÑANA</option>
+            <option value="TARDE">TARDE</option>
+            <option value="NOCHE">NOCHE</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Vista</label>
+          <select id="vista">
+            <option value="SESION_ACTUAL">SESIÓN ACTUAL</option>
+            <option value="HISTORICO_FECHA">HISTÓRICO SEGÚN FECHA</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-search" onclick="buscarReporte()">BUSCAR</button>
+        <button class="btn btn-export" onclick="exportarExcel()">EXPORTAR EXCEL</button>
+        <a class="btn btn-back" href="dashboard_kpi.html">VOLVER A KPI</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="title">RESUMEN</h2>
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Tiempo total del período</div>
+          <div class="v" id="statTiempo">00:00:00</div>
+        </div>
+        <div class="stat">
+          <div class="k">Piezas fabricadas</div>
+          <div class="v" id="statFabricadas">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Piezas programadas</div>
+          <div class="v" id="statProgramadas">0</div>
+        </div>
+        <div class="stat">
+          <div class="k">Registros detalle</div>
+          <div class="v" id="statRegistros">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="title">PREVISUALIZACIÓN DETALLE</h2>
+      <div class="muted" style="margin-bottom:12px;">Se exportan solo las piezas cerradas, es decir, cuando una lectura queda completada por la lectura siguiente.</div>
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Sector</th>
+              <th>Línea</th>
+              <th>Puesto</th>
+              <th>Producto</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Tiempo de fábrica</th>
+              <th>Tiempo parada en ese producto</th>
+              <th>Tiempo de parada total del puesto</th>
+            </tr>
+          </thead>
+          <tbody id="tablaDetalle">
+            <tr><td colspan="9" class="muted">Todavía no hay datos cargados.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+const supabaseClient = supabase.createClient(
+  "https://gqlftpalwqybyywdplei.supabase.co",
+  "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
+);
+
+const CONFIG_LINEAS = {
+  "MOIE": {
+    "LINEA MOTOR": [1,2,3,4,5,6],
+    "LINEA VIESA": [1,2,3,4],
+    "LINEA VARIOS": [1,2,3,4,5,6,7]
+  },
+  "MOV": {},
+  "TORNERIA": {},
+  "MECANIZADO": {},
+  "VIESA": {},
+  "INYECCION": {}
+};
+
+const TURNOS = {
+  "MANANA": { inicio: "06:00:00", fin: "14:00:00" },
+  "TARDE":  { inicio: "14:00:00", fin: "22:00:00" },
+  "NOCHE":  { inicio: "22:00:00", fin: "06:00:00" }
+};
+
+let detalleActual = [];
+let resumenActual = [];
+
+function msToTime(ms){
+  if(!ms || ms < 0 || isNaN(ms)) ms = 0;
+  const totalSeg = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeg / 3600);
+  const m = Math.floor((totalSeg % 3600) / 60);
+  const s = totalSeg % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function parseFecha(valor){
+  if(!valor) return null;
+  const d = new Date(valor);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatFechaHora(valor){
+  const d = parseFecha(valor);
+  if(!d) return "-";
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(d);
+}
+
+function cargarSectores(){
+  const sel = document.getElementById("sector");
+  Object.keys(CONFIG_LINEAS).forEach(sector => {
+    const op = document.createElement("option");
+    op.value = sector;
+    op.textContent = sector;
+    sel.appendChild(op);
+  });
+}
+
+function actualizarLineas(){
+  const sector = document.getElementById("sector").value;
+  const lineaSel = document.getElementById("linea");
+  const puestoSel = document.getElementById("puesto");
+
+  lineaSel.innerHTML = `<option value="">TODAS</option>`;
+  puestoSel.innerHTML = `<option value="">TODOS</option>`;
+
+  if(!sector || !CONFIG_LINEAS[sector]) return;
+
+  Object.keys(CONFIG_LINEAS[sector]).forEach(linea => {
+    const op = document.createElement("option");
+    op.value = linea;
+    op.textContent = linea;
+    lineaSel.appendChild(op);
+  });
+}
+
+function actualizarPuestos(){
+  const sector = document.getElementById("sector").value;
+  const linea = document.getElementById("linea").value;
+  const puestoSel = document.getElementById("puesto");
+
+  puestoSel.innerHTML = `<option value="">TODOS</option>`;
+
+  if(!sector || !linea) return;
+  const puestos = CONFIG_LINEAS[sector]?.[linea] || [];
+  puestos.forEach(p => {
+    const op = document.createElement("option");
+    op.value = String(p);
+    op.textContent = `PUESTO ${p}`;
+    puestoSel.appendChild(op);
+  });
+}
+
+async function obtenerSesionActual(){
+  const { data, error } = await supabaseClient
+    .from('dashboard_control')
+    .select('sesion_actual')
+    .eq('id', 1)
+    .single();
+
+  if (error || !data) return 1;
+  return data.sesion_actual || 1;
+}
+
+function rangoPorFechaYTurno(fecha, turno){
+  if(!fecha) return null;
+
+  if(turno === "TODO_EL_DIA"){
+    const inicio = new Date(`${fecha}T00:00:00`);
+    const fin = new Date(`${fecha}T23:59:59`);
+    return { inicio, fin };
+  }
+
+  const cfg = TURNOS[turno];
+  if(!cfg) return null;
+
+  const inicio = new Date(`${fecha}T${cfg.inicio}`);
+  let fin = new Date(`${fecha}T${cfg.fin}`);
+
+  // turno noche cruza de día
+  if (turno === "NOCHE") {
+    fin.setDate(fin.getDate() + 1);
+  }
+
+  return { inicio, fin };
+}
+
+function calcularPiezasProgramadas(detalle){
+  let total = 0;
+
+  detalle.forEach(row => {
+    const tiempoMs = row._tiempo_fabricacion_ms || 0;
+
+    if (row.linea === "LINEA MOTOR" && [1,2,3,4].includes(Number(row.puesto))) {
+      total += Math.floor(tiempoMs / (13 * 60 * 1000));
+    }
+
+    if (row.linea === "LINEA MOTOR" && Number(row.puesto) === 5) {
+      total += Math.floor(tiempoMs / (25 * 60 * 1000));
+    }
+  });
+
+  return total;
+}
+
+function tiempoParadaTotalPorPuesto(regsFiltrados, sector, linea, puesto){
+  let total = 0;
+
+  regsFiltrados.forEach(r => {
+    if ((r.estado || '').toLowerCase() !== 'parado') return;
+    if (r.sector !== sector || r.linea !== linea || Number(r.puesto) !== Number(puesto)) return;
+
+    const ini = parseFecha(r.inicio);
+    const fin = r.fin ? parseFecha(r.fin) : new Date();
+
+    if (ini && fin) total += Math.max(fin.getTime() - ini.getTime(), 0);
+  });
+
+  return total;
+}
+
+async function obtenerRegistrosFiltrados(){
+  const sector = document.getElementById("sector").value;
+  const linea = document.getElementById("linea").value;
+  const puesto = document.getElementById("puesto").value;
+  const fecha = document.getElementById("fecha").value;
+  const turno = document.getElementById("turno").value;
+  const vista = document.getElementById("vista").value;
+
+  const { data: reg, error } = await supabaseClient
+    .from('registros')
+    .select('*')
+    .order('inicio', { ascending: true });
+
+  if(error){
+    console.log(error);
+    return [];
+  }
+
+  let datos = reg || [];
+
+  if (vista === "SESION_ACTUAL") {
+    const sesionActual = await obtenerSesionActual();
+    datos = datos.filter(r => Number(r.sesion_dashboard || 1) === Number(sesionActual));
+  }
+
+  if (vista === "HISTORICO_FECHA") {
+    const rango = rangoPorFechaYTurno(fecha, turno);
+    if (rango) {
+      datos = datos.filter(r => {
+        const ini = parseFecha(r.inicio);
+        if (!ini) return false;
+        return ini >= rango.inicio && ini <= rango.fin;
+      });
+    }
+  }
+
+  if (sector) datos = datos.filter(r => r.sector === sector);
+  if (linea) datos = datos.filter(r => r.linea === linea);
+  if (puesto) datos = datos.filter(r => Number(r.puesto) === Number(puesto));
+
+  return datos;
+}
+
+function construirDetalle(regs){
+  const detalle = [];
+
+  const grupos = {};
+  regs.forEach(r => {
+    const key = `${r.sector}||${r.linea}||${r.puesto}`;
+    if (!grupos[key]) grupos[key] = [];
+    grupos[key].push(r);
+  });
+
+  Object.values(grupos).forEach(lista => {
+    lista.sort((a,b) => parseFecha(a.inicio) - parseFecha(b.inicio));
+
+    const lecturas = lista.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+
+    lecturas.forEach((r, idx) => {
+      const siguienteLectura = lecturas[idx + 1];
+      if (!siguienteLectura) return;
+
+      const inicio = parseFecha(r.inicio);
+      const fin = parseFecha(siguienteLectura.inicio);
+      if (!inicio || !fin) return;
+
+      const tiempoFabMs = Math.max(fin.getTime() - inicio.getTime(), 0);
+
+      const paradasDelProducto = lista.filter(x => {
+        if ((x.estado || '').toLowerCase() !== 'parado') return false;
+        const iniParada = parseFecha(x.inicio);
+        return iniParada && iniParada >= inicio && iniParada <= fin;
+      });
+
+      let tiempoParadaProductoMs = 0;
+      paradasDelProducto.forEach(p => {
+        const ini = parseFecha(p.inicio);
+        const finP = p.fin ? parseFecha(p.fin) : new Date();
+        if (ini && finP) tiempoParadaProductoMs += Math.max(finP.getTime() - ini.getTime(), 0);
+      });
+
+      const tiempoParadaPuestoMs = tiempoParadaTotalPorPuesto(regs, r.sector, r.linea, r.puesto);
+
+      detalle.push({
+        sector: r.sector || "",
+        linea: r.linea || "",
+        puesto: r.puesto || "",
+        producto: r.producto || "",
+        inicio: formatFechaHora(r.inicio),
+        fin: formatFechaHora(siguienteLectura.inicio),
+        tiempo_fabricacion: msToTime(tiempoFabMs),
+        tiempo_parada_producto: msToTime(tiempoParadaProductoMs),
+        tiempo_parada_total_puesto: msToTime(tiempoParadaPuestoMs),
+
+        _tiempo_fabricacion_ms: tiempoFabMs
+      });
+    });
+  });
+
+  return detalle;
+}
+
+function construirResumen(detalle){
+  const sector = document.getElementById("sector").value || "TODOS";
+  const linea = document.getElementById("linea").value || "TODAS";
+  const puesto = document.getElementById("puesto").value || "TODOS";
+  const fecha = document.getElementById("fecha").value || "SIN FECHA";
+  const turno = document.getElementById("turno").value;
+
+  let tiempoTotalMs = 0;
+  detalle.forEach(d => {
+    tiempoTotalMs += d._tiempo_fabricacion_ms || 0;
+  });
+
+  const piezasFabricadas = detalle.length;
+  const piezasProgramadas = calcularPiezasProgramadas(detalle);
+
+  return [{
+    sector,
+    linea,
+    puesto,
+    fecha,
+    turno,
+    tiempo_total_periodo: msToTime(tiempoTotalMs),
+    piezas_fabricadas: piezasFabricadas,
+    piezas_programadas: piezasProgramadas
+  }];
+}
+
+function pintarResumen(resumen, detalle){
+  const r = resumen[0] || {
+    tiempo_total_periodo: "00:00:00",
+    piezas_fabricadas: 0,
+    piezas_programadas: 0
+  };
+
+  document.getElementById("statTiempo").innerText = r.tiempo_total_periodo;
+  document.getElementById("statFabricadas").innerText = r.piezas_fabricadas;
+  document.getElementById("statProgramadas").innerText = r.piezas_programadas;
+  document.getElementById("statRegistros").innerText = detalle.length;
+}
+
+function pintarDetalle(detalle){
+  const tbody = document.getElementById("tablaDetalle");
+
+  if (!detalle.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="muted">No hay datos para los filtros seleccionados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = detalle.map(d => `
+    <tr>
+      <td>${d.sector}</td>
+      <td>${d.linea}</td>
+      <td>${d.puesto}</td>
+      <td>${d.producto}</td>
+      <td>${d.inicio}</td>
+      <td>${d.fin}</td>
+      <td>${d.tiempo_fabricacion}</td>
+      <td>${d.tiempo_parada_producto}</td>
+      <td>${d.tiempo_parada_total_puesto}</td>
+    </tr>
+  `).join('');
+}
+
+async function buscarReporte(){
+  const regs = await obtenerRegistrosFiltrados();
+  detalleActual = construirDetalle(regs);
+  resumenActual = construirResumen(detalleActual);
+
+  pintarResumen(resumenActual, detalleActual);
+  pintarDetalle(detalleActual);
+}
+
+function exportarExcel(){
+  if (!detalleActual.length) {
+    alert("Primero hacé BUSCAR para generar datos.");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  const detalleExcel = detalleActual.map(d => ({
+    sector: d.sector,
+    linea: d.linea,
+    puesto: d.puesto,
+    producto: d.producto,
+    inicio: d.inicio,
+    fin: d.fin,
+    tiempo_fabricacion: d.tiempo_fabricacion,
+    tiempo_parada_producto: d.tiempo_parada_producto,
+    tiempo_parada_total_puesto: d.tiempo_parada_total_puesto
+  }));
+
+  const ws1 = XLSX.utils.json_to_sheet(detalleExcel);
+  const ws2 = XLSX.utils.json_to_sheet(resumenActual);
+
+  XLSX.utils.book_append_sheet(wb, ws1, "DETALLE");
+  XLSX.utils.book_append_sheet(wb, ws2, "RESUMEN");
+
+  const fecha = document.getElementById("fecha").value || "sin_fecha";
+  XLSX.writeFile(wb, `reporte_produccion_${fecha}.xlsx`);
+}
+
+(function init(){
+  cargarSectores();
+
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm = String(hoy.getMonth()+1).padStart(2,'0');
+  const dd = String(hoy.getDate()).padStart(2,'0');
+  document.getElementById("fecha").value = `${yyyy}-${mm}-${dd}`;
+})();
+</script>
+</body>
+</html>
