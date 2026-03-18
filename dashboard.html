@@ -267,11 +267,6 @@ async function cargar(){
       .filter(x => {
         const inicio = parseFecha(x.inicio);
         if (!inicio) return false;
-
-        // ignorar registros marcados como reiniciados
-        if ((x.estado || '').toLowerCase() === 'reiniciado') return false;
-
-        // mostrar solo desde el reinicio global
         if (!resetDesde) return true;
         return inicio.getTime() >= resetDesde.getTime();
       })
@@ -288,16 +283,7 @@ async function cargar(){
     let tiempoTotalMs = 0;
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
-
-    const piezas = regsPuesto.filter(r =>
-      (r.tipo_registro || '').toLowerCase() === 'lectura'
-    ).length;
-
-    const ultimaLectura = [...regsPuesto]
-      .reverse()
-      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
-
-    const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
+    let piezas = 0;
 
     if (regsPuesto.length === 0) {
       html += `
@@ -330,10 +316,17 @@ async function cargar(){
       continue;
     }
 
-    // TIEMPO TOTAL
+    const ultimoEvento = regsPuesto[regsPuesto.length - 1];
+
+    // Piezas: solo lecturas nuevas posteriores al reinicio
+    piezas = regsPuesto.filter(r =>
+      (r.tipo_registro || '').toLowerCase() === 'lectura'
+    ).length;
+
+    // Tiempo total: desde primera actividad posterior al reinicio
     const inicioPrimero = parseFecha(regsPuesto[0].inicio);
     if (inicioPrimero) {
-      if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+      if ((ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
         const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
         tiempoTotalMs = finTurno ? Math.max(finTurno.getTime() - inicioPrimero.getTime(), 0) : 0;
       } else {
@@ -341,7 +334,7 @@ async function cargar(){
       }
     }
 
-    // TIEMPO PARADA
+    // Tiempo parada
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -361,7 +354,11 @@ async function cargar(){
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
 
-    // CODIGO EN CURSO
+    const ultimaLectura = [...regsPuesto]
+      .reverse()
+      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+
+    // Código en curso
     if (activoProduccion) {
       const inicioActivo = parseFecha(activoProduccion.inicio);
       if (inicioActivo) {
@@ -372,7 +369,7 @@ async function cargar(){
       if (inicioLectura) {
         tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
       }
-    } else if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado' && ultimaLectura) {
+    } else if ((ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado' && ultimaLectura) {
       const inicioLectura = parseFecha(ultimaLectura.inicio);
       const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
       if (inicioLectura && finTurno) {
@@ -380,18 +377,18 @@ async function cargar(){
       }
     }
 
-    if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+    if ((ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
       estado = "TURNO FINALIZADO";
       clase = "turno";
-      blink = "";
       legajo = ultimoEvento.operario || "-";
       nombre = mapaOperarios[String(ultimoEvento.operario)] || "-";
 
-      const ultimaLecturaPrev = [...regsPuesto]
+      const ultimoProd = [...regsPuesto]
         .reverse()
         .find(r => ['lectura','continuacion','cambio_operario'].includes((r.tipo_registro || '').toLowerCase()));
-      if (ultimaLecturaPrev) {
-        producto = ultimaLecturaPrev.producto || "-";
+
+      if (ultimoProd) {
+        producto = ultimoProd.producto || "-";
       }
     } else if (activoProduccion) {
       estado = "PRODUCIENDO";
@@ -464,7 +461,7 @@ function iniciar(){
 async function reiniciarDashboard(){
   const ts = new Date().toISOString();
 
-  // 1) guardar reinicio global
+  // Guardar reinicio global
   const { error: errorReset } = await supabaseClient
     .from('dashboard_control')
     .upsert(
@@ -475,21 +472,6 @@ async function reiniciarDashboard(){
   if (errorReset) {
     alert("Error al guardar reinicio global");
     console.log(errorReset);
-    return;
-  }
-
-  // 2) cerrar todos los registros abiertos y marcarlos como reiniciados
-  const { error: errorCerrar } = await supabaseClient
-    .from('registros')
-    .update({
-      fin: ts,
-      estado: 'reiniciado'
-    })
-    .is('fin', null);
-
-  if (errorCerrar) {
-    alert("Error al cerrar registros abiertos");
-    console.log(errorCerrar);
     return;
   }
 
