@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MOIE</title>
+<title>KPI Líneas</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
@@ -27,15 +27,15 @@ body{
   align-items:flex-start;
   margin-bottom:8px;
 }
-.header-left{ width:220px; }
-.header-center{ flex:1; text-align:center; }
+.header-left{width:220px}
+.header-center{flex:1;text-align:center}
 .header-right{
   width:220px;
   display:flex;
   justify-content:flex-end;
   align-items:flex-start;
 }
-.header img{ height:70px; }
+.header img{height:70px}
 h1{
   font-size:48px;
   margin:0;
@@ -53,34 +53,39 @@ h1{
   font-size:24px;
   font-weight:700;
 }
+.linea-titulo{
+  margin:26px 0 10px;
+  font-size:28px;
+  font-weight:900;
+  text-transform:uppercase;
+}
 .grid{
   display:grid;
-  grid-template-columns: repeat(6,1fr);
   gap:14px;
-  margin-top:16px;
 }
+.grid.motor{grid-template-columns:repeat(6,1fr)}
+.grid.viesa{grid-template-columns:repeat(4,1fr)}
+.grid.varios{grid-template-columns:repeat(7,1fr)}
 .card{
   padding:16px;
   border-radius:16px;
-  min-height:450px;
+  min-height:430px;
 }
-.produciendo{ background:var(--green); }
-.esperando{ background:var(--gray); }
-.parado{ background:var(--red); }
-.turno{ background:var(--orange); }
-.blink{ animation:blink 1s infinite; }
-@keyframes blink{
-  50%{ opacity:0.4; }
-}
+.produciendo{background:var(--green)}
+.esperando{background:var(--gray)}
+.parado{background:var(--red)}
+.turno{background:var(--orange)}
+.blink{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:0.4}}
 .titulo{
   text-align:center;
-  font-size:26px;
+  font-size:24px;
   font-weight:900;
   margin-bottom:10px;
   text-transform:uppercase;
 }
 .campo{
-  font-size:16px;
+  font-size:15px;
   margin:6px 0;
   text-transform:uppercase;
 }
@@ -94,8 +99,8 @@ h1{
   font-size:20px;
   font-weight:900;
 }
-.ok{ color:#00ff88; }
-.mal{ color:#ff3b3b; }
+.ok{color:#00ff88}
+.mal{color:#ff3b3b}
 .botones{
   position:fixed;
   bottom:20px;
@@ -111,8 +116,8 @@ h1{
   cursor:pointer;
   color:white;
 }
-.refresh{ background:#2f80ed; }
-.reset{ background:#ff8a00; }
+.refresh{background:#2f80ed}
+.reset{background:#ff8a00}
 .info-reset{
   position:fixed;
   bottom:20px;
@@ -121,6 +126,13 @@ h1{
   padding:10px 14px;
   border-radius:10px;
   font-size:13px;
+}
+@media (max-width:1600px){
+  .grid.motor,.grid.varios{grid-template-columns:repeat(3,1fr)}
+  .grid.viesa{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+  .grid.motor,.grid.viesa,.grid.varios{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -138,10 +150,17 @@ h1{
 </div>
 
 <div class="subtitulo-row">
-  <div class="subtitulo">LINEA MOTOR</div>
+  <div class="subtitulo">DASHBOARD KPI INDUSTRIAL</div>
 </div>
 
-<div class="grid" id="grid"></div>
+<div class="linea-titulo">LÍNEA MOTOR</div>
+<div class="grid motor" id="grid-motor"></div>
+
+<div class="linea-titulo">LÍNEA VIESA</div>
+<div class="grid viesa" id="grid-viesa"></div>
+
+<div class="linea-titulo">LÍNEA VARIOS</div>
+<div class="grid varios" id="grid-varios"></div>
 
 <div class="botones">
   <button class="btn refresh" onclick="cargar()">ACTUALIZAR</button>
@@ -155,6 +174,12 @@ const supabaseClient = supabase.createClient(
   "https://gqlftpalwqybyywdplei.supabase.co",
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
+
+const CONFIG = {
+  "LINEA MOTOR": { puestos: [1,2,3,4,5,6], objetivos: {1:13,2:13,3:13,4:13,5:25} },
+  "LINEA VIESA": { puestos: [1,2,3,4], objetivos: {} },
+  "LINEA VARIOS": { puestos: [1,2,3,4,5,6,7], objetivos: {} }
+};
 
 let intervalo = null;
 
@@ -213,6 +238,147 @@ async function actualizarInfoReset(){
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
+function nombrePuesto(linea, puesto){
+  if (linea === 'LINEA MOTOR' && puesto === 6) return 'PROBADOR';
+  return 'PUESTO ' + puesto;
+}
+
+function renderLinea(linea, regsLinea, mapaOperarios){
+  const cfg = CONFIG[linea];
+  let html = '';
+
+  cfg.puestos.forEach((p) => {
+    const regsPuesto = regsLinea
+      .filter(x => Number(x.puesto) === p)
+      .sort((a,b) => parseFecha(a.inicio) - parseFecha(b.inicio));
+
+    let estado = "ESPERANDO";
+    let clase = "esperando";
+    let blink = "";
+    let legajo = "-";
+    let nombre = "-";
+    let producto = "-";
+    let motivo = "-";
+    let tiempoTotalMs = 0;
+    let tiempoParadaMs = 0;
+    let tiempoCodigoMs = 0;
+
+    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+    const ultimaLectura = [...regsPuesto].reverse().find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+    const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
+
+    if (regsPuesto.length === 0) {
+      html += `
+        <div class="card esperando">
+          <div class="titulo">${nombrePuesto(linea, p)}</div>
+          <div class="campo"><b>ESTADO:</b> ESPERANDO</div>
+          <div class="campo"><b>LEGAJO:</b> -</div>
+          <div class="campo"><b>OPERARIO:</b> -</div>
+          <div class="campo"><b>PRODUCTO:</b> -</div>
+          <div class="campo"><b>MOTIVO:</b> -</div>
+          <div class="campo"><b>PIEZAS:</b> 0</div>
+          <div class="contador">TIEMPO TOTAL<div class="valor">00:00:00</div></div>
+          <div class="contador">CODIGO EN CURSO<div class="valor">00:00:00</div></div>
+          <div class="contador">TIEMPO PARADA<div class="valor">00:00:00</div></div>
+        </div>
+      `;
+      return;
+    }
+
+    const inicioPrimero = parseFecha(regsPuesto[0].inicio);
+    if (inicioPrimero) {
+      if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+        const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
+        tiempoTotalMs = finTurno ? Math.max(finTurno.getTime() - inicioPrimero.getTime(), 0) : 0;
+      } else {
+        tiempoTotalMs = Math.max(Date.now() - inicioPrimero.getTime(), 0);
+      }
+    }
+
+    regsPuesto.forEach(r => {
+      const inicio = parseFecha(r.inicio);
+      const fin = parseFecha(r.fin);
+      const estadoReg = (r.estado || '').toLowerCase();
+      if (!inicio) return;
+
+      if (estadoReg === 'parado') {
+        if (fin) tiempoParadaMs += Math.max(fin.getTime() - inicio.getTime(), 0);
+        else tiempoParadaMs += Math.max(Date.now() - inicio.getTime(), 0);
+      }
+    });
+
+    const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
+    const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
+
+    if (activoProduccion) {
+      const inicioActivo = parseFecha(activoProduccion.inicio);
+      if (inicioActivo) tiempoCodigoMs = Math.max(Date.now() - inicioActivo.getTime(), 0);
+    } else if (ultimaLectura) {
+      const inicioLectura = parseFecha(ultimaLectura.inicio);
+      if (inicioLectura) {
+        if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+          const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
+          if (finTurno) tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
+        } else {
+          tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
+        }
+      }
+    }
+
+    if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
+      estado = 'TURNO FINALIZADO';
+      clase = 'turno';
+      legajo = ultimoEvento.operario || '-';
+      nombre = mapaOperarios[String(ultimoEvento.operario)] || '-';
+      const ultimoProd = [...regsPuesto].reverse().find(r =>
+        ['lectura','continuacion','cambio_operario'].includes((r.tipo_registro || '').toLowerCase())
+      );
+      if (ultimoProd) producto = ultimoProd.producto || '-';
+    } else if (activoProduccion) {
+      estado = 'PRODUCIENDO';
+      clase = 'produciendo';
+      legajo = activoProduccion.operario || '-';
+      nombre = mapaOperarios[String(activoProduccion.operario)] || '-';
+      producto = activoProduccion.producto || '-';
+    } else if (activoParada) {
+      estado = 'PARADO';
+      clase = 'parado';
+      blink = 'blink';
+      legajo = activoParada.operario || '-';
+      nombre = mapaOperarios[String(activoParada.operario)] || '-';
+      producto = activoParada.producto || '-';
+      motivo = activoParada.motivo_parada || '-';
+    }
+
+    let estadoTiempo = '';
+    const objetivoMin = cfg.objetivos[p];
+    if (objetivoMin) {
+      const objetivoMs = objetivoMin * 60 * 1000;
+      estadoTiempo = tiempoCodigoMs <= objetivoMs
+        ? `<span class="ok">OK</span>`
+        : `<span class="mal">EXCEDIDO</span>`;
+    }
+
+    html += `
+      <div class="card ${clase} ${blink}">
+        <div class="titulo">${nombrePuesto(linea, p)}</div>
+        <div class="campo"><b>ESTADO:</b> ${estado}</div>
+        <div class="campo"><b>LEGAJO:</b> ${legajo}</div>
+        <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
+        <div class="campo"><b>PRODUCTO:</b> ${producto}</div>
+        <div class="campo"><b>MOTIVO:</b> ${motivo}</div>
+        <div class="campo"><b>PIEZAS:</b> ${piezas}</div>
+
+        <div class="contador">TIEMPO TOTAL<div class="valor">${format(tiempoTotalMs)}</div></div>
+        <div class="contador">CODIGO EN CURSO<div class="valor">${format(tiempoCodigoMs)} ${estadoTiempo}</div></div>
+        <div class="contador">TIEMPO PARADA<div class="valor">${format(tiempoParadaMs)}</div></div>
+      </div>
+    `;
+  });
+
+  return html;
+}
+
 async function cargar(){
   const { data: reg = [], error: errReg } = await supabaseClient
     .from('registros')
@@ -232,181 +398,19 @@ async function cargar(){
   const sesionActual = control.sesion_actual;
 
   const mapaOperarios = {};
-  ops.forEach(o => {
-    mapaOperarios[String(o.legajo)] = o.nombre;
-  });
+  ops.forEach(o => { mapaOperarios[String(o.legajo)] = o.nombre; });
 
-  let html = '';
+  const regsSesion = reg.filter(x => Number(x.sesion_dashboard || 1) === Number(sesionActual));
 
-  for(let p = 1; p <= 6; p++){
-    const regsPuesto = reg
-      .filter(x => Number(x.puesto) === p)
-      .filter(x => Number(x.sesion_dashboard || 1) === Number(sesionActual))
-      .sort((a,b) => parseFecha(a.inicio) - parseFecha(b.inicio));
+  document.getElementById('grid-motor').innerHTML =
+    renderLinea('LINEA MOTOR', regsSesion.filter(x => x.linea === 'LINEA MOTOR'), mapaOperarios);
 
-    let estado = "ESPERANDO";
-    let clase = "esperando";
-    let blink = "";
-    let legajo = "-";
-    let nombre = "-";
-    let producto = "-";
-    let motivo = "-";
+  document.getElementById('grid-viesa').innerHTML =
+    renderLinea('LINEA VIESA', regsSesion.filter(x => x.linea === 'LINEA VIESA'), mapaOperarios);
 
-    let tiempoTotalMs = 0;
-    let tiempoParadaMs = 0;
-    let tiempoCodigoMs = 0;
+  document.getElementById('grid-varios').innerHTML =
+    renderLinea('LINEA VARIOS', regsSesion.filter(x => x.linea === 'LINEA VARIOS'), mapaOperarios);
 
-    const piezas = regsPuesto.filter(r =>
-      (r.tipo_registro || '').toLowerCase() === 'lectura'
-    ).length;
-
-    const ultimaLectura = [...regsPuesto]
-      .reverse()
-      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
-
-    const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
-
-    if (regsPuesto.length === 0) {
-      html += `
-        <div class="card esperando">
-          <div class="titulo">${p === 6 ? "PROBADOR" : "PUESTO " + p}</div>
-          <div class="campo"><b>ESTADO:</b> ESPERANDO</div>
-          <div class="campo"><b>LEGAJO:</b> -</div>
-          <div class="campo"><b>OPERARIO:</b> -</div>
-          <div class="campo"><b>PRODUCTO:</b> -</div>
-          <div class="campo"><b>MOTIVO:</b> -</div>
-          <div class="campo"><b>PIEZAS:</b> 0</div>
-          <div class="contador">
-            TIEMPO TOTAL
-            <div class="valor">00:00:00</div>
-          </div>
-          <div class="contador">
-            CODIGO EN CURSO
-            <div class="valor">00:00:00 ${p <= 5 ? '<span class="ok">OK</span>' : ''}</div>
-          </div>
-          <div class="contador">
-            TIEMPO PARADA
-            <div class="valor">00:00:00</div>
-          </div>
-        </div>
-      `;
-      continue;
-    }
-
-    const inicioPrimero = parseFecha(regsPuesto[0].inicio);
-    if (inicioPrimero) {
-      if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
-        const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-        tiempoTotalMs = finTurno ? Math.max(finTurno.getTime() - inicioPrimero.getTime(), 0) : 0;
-      } else {
-        tiempoTotalMs = Math.max(Date.now() - inicioPrimero.getTime(), 0);
-      }
-    }
-
-    regsPuesto.forEach(r => {
-      const inicio = parseFecha(r.inicio);
-      const fin = parseFecha(r.fin);
-      const estadoReg = (r.estado || '').toLowerCase();
-
-      if (!inicio) return;
-
-      if (estadoReg === 'parado') {
-        if (fin) {
-          tiempoParadaMs += Math.max(fin.getTime() - inicio.getTime(), 0);
-        } else {
-          tiempoParadaMs += Math.max(Date.now() - inicio.getTime(), 0);
-        }
-      }
-    });
-
-    const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
-    const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
-
-    if (ultimaLectura) {
-  const inicioLectura = parseFecha(ultimaLectura.inicio);
-
-  if (inicioLectura) {
-    if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
-      const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-      if (finTurno) {
-        tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
-      }
-    } else {
-      tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
-    }
-  }
-}
-
-    if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
-      estado = "TURNO FINALIZADO";
-      clase = "turno";
-      legajo = ultimoEvento.operario || "-";
-      nombre = mapaOperarios[String(ultimoEvento.operario)] || "-";
-
-      const ultimoProd = [...regsPuesto]
-        .reverse()
-        .find(r => ['lectura','continuacion','cambio_operario'].includes((r.tipo_registro || '').toLowerCase()));
-
-      if (ultimoProd) {
-        producto = ultimoProd.producto || "-";
-      }
-    } else if (activoProduccion) {
-      estado = "PRODUCIENDO";
-      clase = "produciendo";
-      legajo = activoProduccion.operario || "-";
-      nombre = mapaOperarios[String(activoProduccion.operario)] || "-";
-      producto = activoProduccion.producto || "-";
-      motivo = "-";
-    } else if (activoParada) {
-      estado = "PARADO";
-      clase = "parado";
-      blink = "blink";
-      legajo = activoParada.operario || "-";
-      nombre = mapaOperarios[String(activoParada.operario)] || "-";
-      producto = activoParada.producto || "-";
-      motivo = activoParada.motivo_parada || "-";
-    }
-
-    let objetivo = null;
-    if (p >= 1 && p <= 4) objetivo = 13 * 60 * 1000;
-    if (p === 5) objetivo = 25 * 60 * 1000;
-
-    let estadoTiempo = "";
-    if (objetivo !== null) {
-      estadoTiempo = tiempoCodigoMs <= objetivo
-        ? `<span class="ok">OK</span>`
-        : `<span class="mal">EXCEDIDO</span>`;
-    }
-
-    html += `
-      <div class="card ${clase} ${blink}">
-        <div class="titulo">${p === 6 ? "PROBADOR" : "PUESTO " + p}</div>
-        <div class="campo"><b>ESTADO:</b> ${estado}</div>
-        <div class="campo"><b>LEGAJO:</b> ${legajo}</div>
-        <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
-        <div class="campo"><b>PRODUCTO:</b> ${producto}</div>
-        <div class="campo"><b>MOTIVO:</b> ${motivo}</div>
-        <div class="campo"><b>PIEZAS:</b> ${piezas}</div>
-
-        <div class="contador">
-          TIEMPO TOTAL
-          <div class="valor">${format(tiempoTotalMs)}</div>
-        </div>
-
-        <div class="contador">
-          CODIGO EN CURSO
-          <div class="valor">${format(tiempoCodigoMs)} ${estadoTiempo}</div>
-        </div>
-
-        <div class="contador">
-          TIEMPO PARADA
-          <div class="valor">${format(tiempoParadaMs)}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  document.getElementById("grid").innerHTML = html;
   await actualizarInfoReset();
 }
 
@@ -446,7 +450,9 @@ async function reiniciarDashboard(){
   }
 
   clearInterval(intervalo);
-  document.getElementById("grid").innerHTML = "";
+  document.getElementById("grid-motor").innerHTML = "";
+  document.getElementById("grid-viesa").innerHTML = "";
+  document.getElementById("grid-varios").innerHTML = "";
   setTimeout(() => iniciar(), 300);
 }
 
