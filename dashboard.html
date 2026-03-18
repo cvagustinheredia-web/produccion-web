@@ -1,133 +1,148 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard Producción</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<meta charset="UTF-8">
+<title>MOIE</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-  <style>
-    :root{
-      --bg:#061537;
-      --panel-green:#1f8f53;
-      --panel-gray:#7b8590;
-      --panel-red:#c73b3b;
-      --box-overlay:rgba(255,255,255,0.14);
-      --text:#ffffff;
-      --blue:#2f80ed;
-      --orange:#ff8a00;
-    }
+<style>
+:root{
+  --bg:#061537;
+  --green:#1f8f53;
+  --gray:#7b8590;
+  --red:#c73b3b;
+  --white:#fff;
+  --overlay:rgba(255,255,255,0.12);
+}
 
-    body {
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 20px;
-    }
+body{
+  margin:0;
+  padding:20px;
+  font-family:Arial;
+  background:var(--bg);
+  color:white;
+}
 
-    .topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:20px;
-    }
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  position:relative;
+  margin-bottom:10px;
+}
 
-    h1 {
-      margin: 0;
-      font-size: 42px;
-      font-weight: 900;
-      text-align:center;
-      flex:1;
-    }
+.header img{
+  position:absolute;
+  right:0;
+  top:0;
+  height:70px;
+}
 
-    .acciones{
-      display:flex;
-      gap:10px;
-    }
+h1{
+  font-size:48px;
+  margin:0;
+  font-weight:900;
+}
 
-    .btn{
-      border:none;
-      border-radius:10px;
-      padding:12px 16px;
-      font-weight:800;
-      color:white;
-      cursor:pointer;
-    }
+.subtitulo{
+  text-align:center;
+  font-size:24px;
+  margin-bottom:20px;
+  font-weight:700;
+}
 
-    .btn-refresh{ background:var(--blue); }
-    .btn-reset{ background:var(--orange); }
+/* BOTONES */
+.botones{
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  display:flex;
+  gap:10px;
+}
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-    }
+.btn{
+  padding:12px 18px;
+  border:none;
+  border-radius:10px;
+  font-weight:800;
+  cursor:pointer;
+}
 
-    .card {
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.28);
-      min-height: 410px;
-    }
+.refresh{ background:#2f80ed; color:white;}
+.reset{ background:#ff8a00; color:white;}
 
-    .produciendo { background: var(--panel-green); }
-    .esperando { background: var(--panel-gray); }
-    .parado { background: var(--panel-red); }
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(6,1fr);
+  gap:14px;
+}
 
-    .blink {
-      animation: blink 1s infinite;
-    }
+.card{
+  padding:16px;
+  border-radius:16px;
+  min-height:430px;
+}
 
-    @keyframes blink {
-      0% { opacity:1; }
-      50% { opacity:0.4; }
-      100% { opacity:1; }
-    }
+.produciendo{ background:var(--green);}
+.esperando{ background:var(--gray);}
+.parado{ background:var(--red);}
 
-    .titulo {
-      font-size: 28px;
-      font-weight: 900;
-      text-align: center;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
+.blink{
+  animation:blink 1s infinite;
+}
 
-    .campo {
-      margin: 8px 0;
-      font-size: 18px;
-    }
+@keyframes blink{
+  50%{opacity:0.4;}
+}
 
-    .contador {
-      margin-top: 16px;
-      padding: 12px;
-      background: var(--box-overlay);
-      border-radius: 10px;
-      font-size: 18px;
-    }
+.titulo{
+  text-align:center;
+  font-size:26px;
+  font-weight:900;
+  margin-bottom:10px;
+}
 
-    .valor {
-      font-size: 22px;
-      font-weight: 900;
-      display:block;
-      margin-top:6px;
-    }
-  </style>
+.campo{
+  font-size:16px;
+  margin:6px 0;
+  text-transform:uppercase;
+}
+
+.contador{
+  margin-top:12px;
+  background:var(--overlay);
+  padding:10px;
+  border-radius:10px;
+}
+
+.valor{
+  font-size:20px;
+  font-weight:900;
+}
+
+.ok{ color:#00ff88;}
+.mal{ color:#ff3b3b;}
+
+</style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <div class="acciones">
-    <button class="btn btn-refresh" onclick="cargar()">ACTUALIZAR</button>
-    <button class="btn btn-reset" onclick="reiniciar()">REINICIAR</button>
-  </div>
-
-  <h1>PRODUCCION DE INSTALACION ELECTRICA</h1>
-
-  <div></div>
+<div class="header">
+  <h1>MOIE</h1>
+  <img src="logo_colven.png">
 </div>
 
+<div class="subtitulo">LINEA MOTOR</div>
+
 <div class="grid" id="grid"></div>
+
+<div class="botones">
+  <button class="btn refresh" onclick="cargar()">ACTUALIZAR</button>
+  <button class="btn reset" onclick="reiniciar()">REINICIAR</button>
+</div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -137,102 +152,139 @@ const supabaseClient = supabase.createClient(
 
 let intervalo;
 
-// parse correcto de fecha
+/* -------- FUNCIONES -------- */
+
 function parseFecha(f){
   if(!f) return null;
-  return new Date(f.replace(' ', 'T'));
+  return new Date(f);
 }
 
-function tiempo(fecha){
-  if(!fecha) return "00:00:00";
+function msDiff(i,f){
+  if(!i||!f) return 0;
+  return Math.max(new Date(f)-new Date(i),0);
+}
 
-  let ms = new Date() - fecha;
-  if(ms < 0) ms = 0;
+function msNow(i){
+  if(!i) return 0;
+  return Math.max(Date.now()-new Date(i),0);
+}
 
-  let s = Math.floor(ms/1000);
-  let h = Math.floor(s/3600);
-  let m = Math.floor((s%3600)/60);
-  let seg = s%60;
-
+function format(ms){
+  let s=Math.floor(ms/1000);
+  let h=Math.floor(s/3600);
+  let m=Math.floor((s%3600)/60);
+  let seg=s%60;
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(seg).padStart(2,'0')}`;
 }
 
+/* -------- MAIN -------- */
+
 async function cargar(){
 
-  const {data:registros} = await supabaseClient.from('registros').select('*').order('inicio',{ascending:true});
-  const {data:ops} = await supabaseClient.from('operarios').select('*');
+  const {data:reg}=await supabaseClient.from('registros').select('*').order('inicio',{ascending:true});
+  const {data:ops}=await supabaseClient.from('operarios').select('*');
 
-  let mapa = {};
-  ops.forEach(o=> mapa[o.legajo]=o.nombre);
+  let mapa={};
+  ops.forEach(o=>mapa[o.legajo]=o.nombre);
 
-  let html = "";
+  let html="";
 
-  for(let p=1;p<=5;p++){
+  for(let p=1;p<=6;p++){
 
-    let regs = registros.filter(r=>r.puesto==p);
-    let activo = regs.find(r=>r.fin==null);
-    let ultimo = regs[regs.length-1];
-    let primero = regs[0];
+    let r=reg.filter(x=>x.puesto==p);
+    let ultimo=r[r.length-1];
+    let activo=r.find(x=>x.fin==null);
 
+    let estado="ESPERANDO";
     let clase="esperando";
     let blink="";
-    let estado="Esperando lectura";
     let legajo="-";
     let nombre="-";
     let producto="-";
     let motivo="-";
-    let t1="00:00:00";
-    let t2="00:00:00";
 
-    if(primero) t1 = tiempo(parseFecha(primero.inicio));
+    let prodMs=0;
+    let paradaMs=0;
+    let actualMs=0;
+    let piezas=r.length;
+
+    r.forEach(x=>{
+      if(x.estado=="parado"){
+        paradaMs+= x.fin? msDiff(x.inicio,x.fin): msNow(x.inicio);
+      }else{
+        let t=x.fin? msDiff(x.inicio,x.fin): msNow(x.inicio);
+        prodMs+=t;
+        if(!x.fin) actualMs=t;
+      }
+    });
 
     if(activo){
+      estado="PRODUCCION";
       clase="produciendo";
-      estado="Producción en proceso";
       legajo=activo.operario;
-      nombre=mapa[activo.operario] || "-";
+      nombre=mapa[activo.operario]||"-";
       producto=activo.producto;
-      t2=tiempo(parseFecha(activo.inicio));
     }
-    else if(ultimo && ultimo.estado=="parado"){
+
+    if(ultimo && ultimo.estado=="parado"){
+      estado="PARADO";
       clase="parado";
       blink="blink";
-      estado="PARADO";
       legajo=ultimo.operario;
-      nombre=mapa[ultimo.operario] || "-";
+      nombre=mapa[ultimo.operario]||"-";
       producto=ultimo.producto;
       motivo=ultimo.motivo_parada;
+      actualMs=0;
+    }
+
+    /* OBJETIVO */
+    let objetivo = (p<=4)?13*60*1000:(p==5?25*60*1000:null);
+    let estadoTiempo = "";
+
+    if(objetivo){
+      estadoTiempo = actualMs <= objetivo
+        ? `<span class="ok">OK</span>`
+        : `<span class="mal">EXCEDIDO</span>`;
     }
 
     html+=`
     <div class="card ${clase} ${blink}">
-      <div class="titulo">PUESTO ${p}</div>
+      <div class="titulo">${p==6?"PROBADOR":"PUESTO "+p}</div>
 
-      <div class="campo"><b>Estado:</b> ${estado}</div>
-      <div class="campo"><b>Legajo:</b> ${legajo}</div>
-      <div class="campo"><b>Operario:</b> ${nombre}</div>
-      <div class="campo"><b>Producto:</b> ${producto}</div>
-      <div class="campo"><b>Motivo parada:</b> ${motivo}</div>
+      <div class="campo"><b>ESTADO:</b> ${estado}</div>
+      <div class="campo"><b>LEGAJO:</b> ${legajo}</div>
+      <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
+      <div class="campo"><b>PRODUCTO:</b> ${producto}</div>
+      <div class="campo"><b>MOTIVO:</b> ${motivo}</div>
+      <div class="campo"><b>PIEZAS:</b> ${piezas}</div>
 
       <div class="contador">
-        Tiempo total del puesto
-        <span class="valor">${t1}</span>
+        TIEMPO TOTAL
+        <div class="valor">${format(prodMs)}</div>
       </div>
 
       <div class="contador">
-        Tiempo del código en curso
-        <span class="valor">${t2}</span>
+        CODIGO EN CURSO
+        <div class="valor">${format(actualMs)} ${estadoTiempo}</div>
       </div>
+
+      <div class="contador">
+        TIEMPO PARADA
+        <div class="valor">${format(paradaMs)}</div>
+      </div>
+
     </div>`;
   }
 
-  document.getElementById("grid").innerHTML = html;
+  document.getElementById("grid").innerHTML=html;
 }
+
+/* -------- CONTROL -------- */
 
 function iniciar(){
   if(intervalo) clearInterval(intervalo);
   cargar();
-  intervalo = setInterval(cargar,1000);
+  intervalo=setInterval(cargar,1000);
 }
 
 function reiniciar(){
@@ -242,6 +294,7 @@ function reiniciar(){
 }
 
 iniciar();
+
 </script>
 
 </body>
