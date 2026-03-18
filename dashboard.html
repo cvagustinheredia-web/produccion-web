@@ -267,6 +267,11 @@ async function cargar(){
       .filter(x => {
         const inicio = parseFecha(x.inicio);
         if (!inicio) return false;
+
+        // ignorar registros marcados como reiniciados
+        if ((x.estado || '').toLowerCase() === 'reiniciado') return false;
+
+        // mostrar solo desde el reinicio global
         if (!resetDesde) return true;
         return inicio.getTime() >= resetDesde.getTime();
       })
@@ -325,6 +330,7 @@ async function cargar(){
       continue;
     }
 
+    // TIEMPO TOTAL
     const inicioPrimero = parseFecha(regsPuesto[0].inicio);
     if (inicioPrimero) {
       if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
@@ -335,6 +341,7 @@ async function cargar(){
       }
     }
 
+    // TIEMPO PARADA
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
@@ -351,20 +358,27 @@ async function cargar(){
       }
     });
 
-    if (ultimaLectura) {
-      const inicioLectura = parseFecha(ultimaLectura.inicio);
-      if (inicioLectura) {
-        if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
-          const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-          tiempoCodigoMs = finTurno ? Math.max(finTurno.getTime() - inicioLectura.getTime(), 0) : 0;
-        } else {
-          tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
-        }
-      }
-    }
-
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
+
+    // CODIGO EN CURSO
+    if (activoProduccion) {
+      const inicioActivo = parseFecha(activoProduccion.inicio);
+      if (inicioActivo) {
+        tiempoCodigoMs = Math.max(Date.now() - inicioActivo.getTime(), 0);
+      }
+    } else if (activoParada && ultimaLectura) {
+      const inicioLectura = parseFecha(ultimaLectura.inicio);
+      if (inicioLectura) {
+        tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
+      }
+    } else if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado' && ultimaLectura) {
+      const inicioLectura = parseFecha(ultimaLectura.inicio);
+      const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
+      if (inicioLectura && finTurno) {
+        tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
+      }
+    }
 
     if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
       estado = "TURNO FINALIZADO";
@@ -450,7 +464,7 @@ function iniciar(){
 async function reiniciarDashboard(){
   const ts = new Date().toISOString();
 
-  // 1) guardar reset global
+  // 1) guardar reinicio global
   const { error: errorReset } = await supabaseClient
     .from('dashboard_control')
     .upsert(
@@ -464,12 +478,12 @@ async function reiniciarDashboard(){
     return;
   }
 
-  // 2) cerrar TODOS los registros abiertos para que ningún puesto siga activo
+  // 2) cerrar todos los registros abiertos y marcarlos como reiniciados
   const { error: errorCerrar } = await supabaseClient
     .from('registros')
     .update({
       fin: ts,
-      estado: 'finalizado'
+      estado: 'reiniciado'
     })
     .is('fin', null);
 
