@@ -94,7 +94,6 @@
 
     .btn-primary{ background:var(--blue); }
     .btn-success{ background:var(--green); }
-    .btn-danger{ background:var(--red); }
     .btn-gray{ background:#425160; }
 
     .grupo-botones{
@@ -195,7 +194,7 @@
 
     <div class="card">
       <h1 class="header-title">INGRESE SU LEGAJO</h1>
-      <label class="label">Legajo</label>
+      <label class="label">LEGAJO</label>
       <input id="legajo" placeholder="Ingresar legajo" oninput="buscarOperario()">
       <div id="nombreOperario" style="font-size:22px;font-weight:800;margin-top:12px;"></div>
       <div style="margin-top:14px;">
@@ -269,10 +268,7 @@ const supabaseClient = supabase.createClient(
 let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
-let registroProduccionActual = null;
-let registroParadaActual = null;
 let productoEnCurso = null;
-let ultimaParada = null;
 
 async function buscarOperario() {
   const legajo = document.getElementById('legajo').value.trim();
@@ -339,8 +335,17 @@ function capturarEnterQR(event) {
   }
 }
 
-function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleString('es-AR');
+function formatearFechaArgentina(fechaIso) {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(new Date(fechaIso));
 }
 
 function setEstado(tipo) {
@@ -359,31 +364,30 @@ function setEstado(tipo) {
   }
 }
 
-async function cerrarParadaSiExiste() {
-  if (!registroParadaActual) return;
-
-  await supabaseClient
+async function obtenerProduccionActiva() {
+  const { data } = await supabaseClient
     .from('registros')
-    .update({
-      fin: new Date().toISOString()
-    })
-    .eq('id', registroParadaActual.id);
+    .select('*')
+    .eq('puesto', puestoSeleccionado)
+    .eq('estado', 'produciendo')
+    .is('fin', null)
+    .order('inicio', { ascending: false })
+    .limit(1);
 
-  registroParadaActual = null;
+  return (data && data.length) ? data[0] : null;
 }
 
-async function cerrarProduccionSiExiste() {
-  if (!registroProduccionActual) return;
-
-  await supabaseClient
+async function obtenerParadaActiva() {
+  const { data } = await supabaseClient
     .from('registros')
-    .update({
-      fin: new Date().toISOString(),
-      estado: 'finalizado'
-    })
-    .eq('id', registroProduccionActual.id);
+    .select('*')
+    .eq('puesto', puestoSeleccionado)
+    .eq('estado', 'parado')
+    .is('fin', null)
+    .order('inicio', { ascending: false })
+    .limit(1);
 
-  registroProduccionActual = null;
+  return (data && data.length) ? data[0] : null;
 }
 
 async function scan() {
@@ -400,10 +404,26 @@ async function scan() {
   qr = limpiarProducto(qr);
   const ahora = new Date().toISOString();
 
-  await cerrarParadaSiExiste();
-  await cerrarProduccionSiExiste();
+  const paradaActiva = await obtenerParadaActiva();
+  if (paradaActiva) {
+    await supabaseClient
+      .from('registros')
+      .update({ fin: ahora })
+      .eq('id', paradaActiva.id);
+  }
 
-  const { data, error } = await supabaseClient
+  const prodActiva = await obtenerProduccionActiva();
+  if (prodActiva) {
+    await supabaseClient
+      .from('registros')
+      .update({
+        fin: ahora,
+        estado: 'finalizado'
+      })
+      .eq('id', prodActiva.id);
+  }
+
+  const { error } = await supabaseClient
     .from('registros')
     .insert({
       producto: qr,
@@ -413,8 +433,7 @@ async function scan() {
       fin: null,
       estado: 'produciendo',
       motivo_parada: null
-    })
-    .select();
+    });
 
   if (error) {
     console.log(error);
@@ -422,12 +441,10 @@ async function scan() {
     return;
   }
 
-  registroProduccionActual = data[0];
   productoEnCurso = qr;
-  ultimaParada = null;
 
   document.getElementById('productoActual').innerText = qr;
-  document.getElementById('inicioActual').innerText = formatearFecha(ahora);
+  document.getElementById('inicioActual').innerText = formatearFechaArgentina(ahora);
   document.getElementById('ultimaParada').innerText = '-';
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
@@ -442,37 +459,33 @@ async function registrarParada(motivo) {
     return;
   }
 
-  if (!registroProduccionActual) {
+  const prodActiva = await obtenerProduccionActiva();
+  if (!prodActiva) {
     alert("No hay producción activa para detener");
     return;
   }
 
   const ahora = new Date().toISOString();
 
-  // cerrar producción actual
   await supabaseClient
     .from('registros')
     .update({
       fin: ahora,
       estado: 'finalizado'
     })
-    .eq('id', registroProduccionActual.id);
+    .eq('id', prodActiva.id);
 
-  registroProduccionActual = null;
-
-  // abrir tramo de parada
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from('registros')
     .insert({
-      producto: productoEnCurso,
-      operario: operario,
-      puesto: puestoSeleccionado,
+      producto: prodActiva.producto,
+      operario: prodActiva.operario,
+      puesto: prodActiva.puesto,
       inicio: ahora,
       fin: null,
       estado: 'parado',
       motivo_parada: motivo
-    })
-    .select();
+    });
 
   if (error) {
     console.log(error);
@@ -480,9 +493,7 @@ async function registrarParada(motivo) {
     return;
   }
 
-  registroParadaActual = data[0];
-  ultimaParada = motivo;
-
+  productoEnCurso = prodActiva.producto;
   document.getElementById('ultimaParada').innerText = motivo;
   document.getElementById('continuarWrap').classList.add('show');
   setEstado('parado');
@@ -494,27 +505,30 @@ async function continuarProduccion() {
     return;
   }
 
-  if (!productoEnCurso) {
-    alert("No hay producto previo para continuar");
+  const paradaActiva = await obtenerParadaActiva();
+  if (!paradaActiva) {
+    alert("No hay parada activa");
     return;
   }
 
   const ahora = new Date().toISOString();
 
-  await cerrarParadaSiExiste();
+  await supabaseClient
+    .from('registros')
+    .update({ fin: ahora })
+    .eq('id', paradaActiva.id);
 
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from('registros')
     .insert({
-      producto: productoEnCurso,
-      operario: operario,
-      puesto: puestoSeleccionado,
+      producto: paradaActiva.producto,
+      operario: paradaActiva.operario,
+      puesto: paradaActiva.puesto,
       inicio: ahora,
       fin: null,
       estado: 'produciendo',
       motivo_parada: null
-    })
-    .select();
+    });
 
   if (error) {
     console.log(error);
@@ -522,9 +536,9 @@ async function continuarProduccion() {
     return;
   }
 
-  registroProduccionActual = data[0];
-
-  document.getElementById('inicioActual').innerText = formatearFecha(ahora);
+  productoEnCurso = paradaActiva.producto;
+  document.getElementById('productoActual').innerText = productoEnCurso;
+  document.getElementById('inicioActual').innerText = formatearFechaArgentina(ahora);
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
   document.getElementById('qr').focus();
