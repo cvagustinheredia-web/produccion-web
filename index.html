@@ -6,116 +6,117 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     :root{
-      --bg:#10151b;
-      --panel:#1a222c;
-      --panel-2:#222c38;
-      --text:#f3f6fa;
-      --muted:#aeb8c4;
-      --border:#324150;
-      --blue:#2f80ed;
-      --green:#1faa59;
+      --bg:#eef3f7;
+      --panel:#ffffff;
+      --panel-2:#f7f9fb;
+      --text:#163047;
+      --muted:#6f8091;
+      --border:#d5dee7;
+      --blue:#1f78d1;
+      --green:#1fa15a;
       --red:#d64545;
+      --orange:#e58b1b;
+      --gray:#7f8c98;
       --white:#ffffff;
+      --shadow:0 8px 20px rgba(0,0,0,.08);
     }
+
     *{ box-sizing:border-box; }
+
     body{
       margin:0;
       font-family:Arial, Helvetica, sans-serif;
-      background:linear-gradient(180deg,#0f141a 0%, #151d26 100%);
+      background:linear-gradient(180deg,#edf2f7 0%, #e7edf4 100%);
       color:var(--text);
       padding:24px;
     }
+
     .container{
-      max-width:1100px;
+      max-width:1200px;
       margin:0 auto;
       display:grid;
       gap:20px;
     }
+
+    .topbar{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      align-items:center;
+      gap:16px;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:34px;
+      font-weight:900;
+      color:#13314a;
+    }
+
+    .brand p{
+      margin:0;
+      font-size:16px;
+      font-weight:700;
+      color:#607386;
+      text-transform:uppercase;
+      letter-spacing:.6px;
+    }
+
+    .logo{
+      height:80px;
+      object-fit:contain;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:6px;
+      box-shadow:var(--shadow);
+    }
+
     .card{
       background:var(--panel);
       border:1px solid var(--border);
       border-radius:18px;
       padding:22px;
-      box-shadow:0 10px 30px rgba(0,0,0,.25);
+      box-shadow:var(--shadow);
     }
-    .header-title{ font-size:34px; font-weight:800; margin:0 0 8px 0; }
-    .section-title{ font-size:28px; font-weight:800; margin:0 0 6px 0; }
-    .mini-title{ font-size:20px; font-weight:800; margin:18px 0 10px 0; text-transform:uppercase; }
-    .label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; }
-    input{
-      width:100%;
-      max-width:360px;
-      background:var(--panel-2);
-      color:var(--white);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:14px 16px;
-      font-size:20px;
-      outline:none;
+
+    .header-title{
+      font-size:28px;
+      font-weight:900;
+      margin:0 0 8px 0;
+      color:#163047;
     }
-    .btn{
-      border:none;
-      border-radius:12px;
-      padding:14px 18px;
-      cursor:pointer;
-      font-size:16px;
-      font-weight:700;
-      color:white;
+
+    .section-title{
+      font-size:28px;
+      font-weight:900;
+      margin:0 0 8px 0;
+      color:#163047;
     }
-    .btn-primary{ background:var(--blue); }
-    .btn-success{ background:var(--green); }
-    .btn-gray{ background:#425160; }
-    .grupo-botones{ display:flex; flex-wrap:wrap; gap:10px; }
-    .btn-puesto{ min-width:110px; background:#354252; color:#dce5ee; }
-    .btn-puesto.activo{ background:var(--blue); }
-    .bloqueado{ pointer-events:none; opacity:.65; }
-    .status-box{
-      min-width:280px;
-      padding:18px 20px;
-      border-radius:16px;
-      font-size:22px;
-      font-weight:800;
-      text-align:center;
-      color:white;
-      margin-top:18px;
-      display:inline-block;
-    }
-    .esperando{ background:#66707c; }
-    .produciendo{ background:#1fb263; }
-    .parado{ background:#d64545; }
-    .info-grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap:14px;
-      margin-top:18px;
-    }
-    .info-card{
-      background:var(--panel-2);
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:16px;
-    }
-    .info-card .k{
-      color:var(--muted);
-      font-size:13px;
+
+    .mini-title{
+      font-size:18px;
+      font-weight:900;
+      margin:18px 0 10px 0;
+      color:#163047;
       text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
       margin-bottom:8px;
+      text-transform:uppercase;
+      letter-spacing:.4px;
     }
-    .info-card .v{
-      font-size:24px;
-      font-weight:800;
-      word-break:break-word;
-    }
-    .tag{
-      display:inline-block;
-      background:#24303d;
-      border:1px solid var(--border);
-      color:#d9e3ee;
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:14px;
-      font-weight:700;
-    }
+
     .row{
       display:flex;
       flex-wrap:wrap;
@@ -123,74 +124,234 @@
       align-items:center;
       justify-content:space-between;
     }
-    .continuar-wrap{ margin-top:14px; display:none; }
-    .continuar-wrap.show{ display:block; }
+
+    .input-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:flex-end;
+    }
+
+    input{
+      width:100%;
+      max-width:360px;
+      background:var(--panel-2);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px 16px;
+      font-size:20px;
+      outline:none;
+    }
+
+    input:focus{
+      border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(31,120,209,.12);
+    }
+
+    .btn{
+      border:none;
+      border-radius:12px;
+      padding:14px 18px;
+      cursor:pointer;
+      font-size:15px;
+      font-weight:800;
+      color:white;
+      min-height:50px;
+    }
+
+    .btn-primary{ background:var(--blue); }
+    .btn-success{ background:var(--green); }
+    .btn-danger{ background:var(--red); }
+    .btn-orange{ background:var(--orange); }
+    .btn-gray{ background:#7a8895; }
+
+    .grupo-botones{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .btn-puesto{
+      min-width:110px;
+      background:#dce7f2;
+      color:#1c3e5c;
+    }
+
+    .btn-puesto.activo{
+      background:var(--blue);
+      color:#fff;
+    }
+
+    .bloqueado{
+      pointer-events:none;
+      opacity:.6;
+    }
+
+    .tag{
+      display:inline-block;
+      background:#edf4fb;
+      border:1px solid #d5e3f0;
+      color:#234666;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:14px;
+      font-weight:800;
+    }
+
+    .status-box{
+      min-width:280px;
+      padding:18px 20px;
+      border-radius:16px;
+      font-size:22px;
+      font-weight:900;
+      text-align:center;
+      color:white;
+      margin-top:18px;
+      display:inline-block;
+      box-shadow:var(--shadow);
+    }
+
+    .esperando{ background:#8391a0; }
+    .produciendo{ background:#1fa15a; }
+    .parado{ background:#d64545; }
+    .turno{ background:#e58b1b; }
+
+    .info-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .info-card{
+      background:var(--panel-2);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+    }
+
+    .info-card .k{
+      color:var(--muted);
+      font-size:13px;
+      text-transform:uppercase;
+      margin-bottom:8px;
+      font-weight:700;
+    }
+
+    .info-card .v{
+      font-size:24px;
+      font-weight:900;
+      color:#163047;
+      word-break:break-word;
+    }
+
+    .help{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:8px;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .continuar-wrap{
+      display:none;
+      margin-top:14px;
+    }
+
+    .continuar-wrap.show{
+      display:block;
+    }
   </style>
 </head>
 <body>
   <div class="container">
 
+    <div class="topbar">
+      <div class="brand">
+        <h1>MOIE</h1>
+        <p>Línea Motor</p>
+      </div>
+      <img src="logo_colven.png" alt="Colven" class="logo">
+    </div>
+
     <div class="card">
-      <h1 class="header-title">INGRESE SU LEGAJO</h1>
-      <label class="label">LEGAJO</label>
-      <input id="legajo" placeholder="Ingresar legajo" oninput="buscarOperario()">
-      <div id="nombreOperario" style="font-size:22px;font-weight:800;margin-top:12px;"></div>
-      <div style="margin-top:14px;">
-        <button class="btn btn-primary" onclick="login()">Ingresar</button>
+      <h2 class="header-title">INGRESE SU LEGAJO</h2>
+
+      <div class="input-row">
+        <div>
+          <label class="label">LEGAJO</label>
+          <input id="legajo" placeholder="Ingresar o escanear legajo" oninput="buscarOperario()" onkeydown="capturarEnterLegajo(event)">
+          <div id="nombreOperario" style="font-size:22px;font-weight:900;margin-top:12px;color:#163047;"></div>
+          <div class="help">Podés escribirlo manualmente o leerlo con QR. Al presionar Enter ingresa automáticamente.</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" onclick="login()">INGRESAR / CAMBIAR OPERARIO</button>
+        </div>
       </div>
     </div>
 
     <div id="panel" class="card" style="display:none;">
-      <h2 class="section-title">Linea Motor MOIE</h2>
+      <h2 class="section-title">OPERACIÓN DE PUESTO</h2>
 
       <div class="row">
-        <div class="tag" id="operarioActivo">Operario: -</div>
-        <div class="tag" id="puestoSeleccionadoTexto">Puesto seleccionado: Ninguno</div>
+        <div class="tag" id="operarioActivo">OPERARIO: -</div>
+        <div class="tag" id="puestoSeleccionadoTexto">PUESTO SELECCIONADO: NINGUNO</div>
       </div>
 
       <div class="mini-title">Seleccionar puesto</div>
       <div id="puestos" class="grupo-botones">
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(1)">Puesto 1</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(2)">Puesto 2</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(3)">Puesto 3</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(4)">Puesto 4</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(5)">Puesto 5</button>
-        <button class="btn btn-puesto" onclick="seleccionarPuesto(6)">Probador</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(1)">PUESTO 1</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(2)">PUESTO 2</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(3)">PUESTO 3</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(4)">PUESTO 4</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(5)">PUESTO 5</button>
+        <button class="btn btn-puesto" onclick="seleccionarPuesto(6)">PROBADOR</button>
       </div>
 
       <div class="mini-title">Escanear QR</div>
-      <label class="label">Lectura del producto</label>
+      <label class="label">LECTURA DEL PRODUCTO</label>
       <input id="qr" placeholder="Escanear código QR" onkeydown="capturarEnterQR(event)">
 
       <div class="mini-title">Parada de puesto</div>
       <div class="grupo-botones">
-        <button class="btn btn-gray" onclick="registrarParada('Falta material')">Falta material</button>
-        <button class="btn btn-gray" onclick="registrarParada('Calidad')">Calidad</button>
-        <button class="btn btn-gray" onclick="registrarParada('Descanso (Desayuno)')">Descanso (Desayuno)</button>
-        <button class="btn btn-gray" onclick="registrarParada('Descanso (Almuerzo)')">Descanso (Almuerzo)</button>
-        <button class="btn btn-gray" onclick="registrarParada('Ing.Procesos')">Ing.Procesos</button>
-        <button class="btn btn-gray" onclick="registrarParada('Logistica')">Logistica</button>
+        <button class="btn btn-gray" onclick="registrarParada('Falta material')">FALTA MATERIAL</button>
+        <button class="btn btn-gray" onclick="registrarParada('Calidad')">CALIDAD</button>
+        <button class="btn btn-gray" onclick="registrarParada('Descanso (Desayuno)')">DESCANSO (DESAYUNO)</button>
+        <button class="btn btn-gray" onclick="registrarParada('Descanso (Almuerzo)')">DESCANSO (ALMUERZO)</button>
+        <button class="btn btn-gray" onclick="registrarParada('Ing.Procesos')">ING.PROCESOS</button>
+        <button class="btn btn-gray" onclick="registrarParada('Logistica')">LOGISTICA</button>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-orange" onclick="finalizarTurno()">FINALIZAR TURNO</button>
       </div>
 
       <div id="continuarWrap" class="continuar-wrap">
         <button class="btn btn-success" onclick="continuarProduccion()">CONTINUAR PRODUCCIÓN</button>
       </div>
 
-      <div id="estadoProduccion" class="status-box esperando">Esperando lectura</div>
+      <div id="estadoProduccion" class="status-box esperando">ESPERANDO</div>
 
       <div class="info-grid">
         <div class="info-card">
-          <div class="k">Producto en curso</div>
+          <div class="k">PRODUCTO EN CURSO</div>
           <div class="v" id="productoActual">-</div>
         </div>
 
         <div class="info-card">
-          <div class="k">Inicio lectura actual</div>
+          <div class="k">INICIO LECTURA ACTUAL</div>
           <div class="v" id="inicioActual">-</div>
         </div>
 
         <div class="info-card">
-          <div class="k">Última parada</div>
+          <div class="k">ÚLTIMA PARADA</div>
           <div class="v" id="ultimaParada">-</div>
         </div>
       </div>
@@ -207,71 +368,7 @@ let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
 
-async function buscarOperario() {
-  const legajo = document.getElementById('legajo').value.trim();
-  if (!legajo) {
-    document.getElementById('nombreOperario').innerText = '';
-    return;
-  }
-
-  const { data } = await supabaseClient
-    .from('operarios')
-    .select('*')
-    .eq('legajo', legajo);
-
-  document.getElementById('nombreOperario').innerText =
-    (data && data.length) ? data[0].nombre : 'No encontrado';
-}
-
-async function login() {
-  const legajo = document.getElementById('legajo').value.trim();
-
-  const { data, error } = await supabaseClient
-    .from('operarios')
-    .select('*')
-    .eq('legajo', legajo);
-
-  if (error || !data || !data.length) {
-    alert('Legajo inválido');
-    return;
-  }
-
-  operario = legajo;
-  nombre = data[0].nombre;
-
-  document.getElementById('panel').style.display = 'block';
-  document.getElementById('operarioActivo').innerText =
-    "Operario: " + nombre + " (" + operario + ")";
-}
-
-function seleccionarPuesto(num) {
-  if (puestoSeleccionado !== null) return;
-
-  puestoSeleccionado = Number(num);
-
-  const botones = document.querySelectorAll('.btn-puesto');
-  botones.forEach(btn => btn.classList.remove('activo'));
-  botones[num - 1].classList.add('activo');
-
-  document.getElementById('puestoSeleccionadoTexto').innerText =
-    "Puesto seleccionado: " + (num === 6 ? "Probador" : num);
-
-  document.getElementById('puestos').classList.add('bloqueado');
-  document.getElementById('qr').focus();
-}
-
-function limpiarProducto(valor) {
-  if (!valor) return '';
-  return valor.startsWith('0') ? valor.substring(1) : valor;
-}
-
-function capturarEnterQR(event) {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    scan();
-  }
-}
-
+// ---------- utilidades ----------
 function formatearFechaArgentina(fechaIso) {
   return new Intl.DateTimeFormat('es-AR', {
     timeZone: 'America/Argentina/Buenos_Aires',
@@ -285,20 +382,59 @@ function formatearFechaArgentina(fechaIso) {
   }).format(new Date(fechaIso));
 }
 
+function limpiarProducto(valor) {
+  if (!valor) return '';
+  return valor.startsWith('0') ? valor.substring(1) : valor;
+}
+
 function setEstado(tipo) {
   const box = document.getElementById('estadoProduccion');
   box.className = 'status-box';
 
   if (tipo === 'produciendo') {
     box.classList.add('produciendo');
-    box.innerText = 'Producción en proceso';
+    box.innerText = 'PRODUCIENDO';
   } else if (tipo === 'parado') {
     box.classList.add('parado');
-    box.innerText = 'Puesto detenido';
+    box.innerText = 'PARADO';
+  } else if (tipo === 'turno') {
+    box.classList.add('turno');
+    box.innerText = 'TURNO FINALIZADO';
   } else {
     box.classList.add('esperando');
-    box.innerText = 'Esperando lectura';
+    box.innerText = 'ESPERANDO';
   }
+}
+
+function capturarEnterQR(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    scan();
+  }
+}
+
+function capturarEnterLegajo(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    login();
+  }
+}
+
+// ---------- búsquedas ----------
+async function buscarOperario() {
+  const legajo = document.getElementById('legajo').value.trim();
+  if (!legajo) {
+    document.getElementById('nombreOperario').innerText = '';
+    return;
+  }
+
+  const { data } = await supabaseClient
+    .from('operarios')
+    .select('*')
+    .eq('legajo', legajo);
+
+  document.getElementById('nombreOperario').innerText =
+    (data && data.length) ? data[0].nombre : 'NO ENCONTRADO';
 }
 
 async function obtenerProduccionActiva() {
@@ -327,12 +463,117 @@ async function obtenerParadaActiva() {
   return (data && data.length) ? data[0] : null;
 }
 
+// ---------- operario ----------
+async function login() {
+  const legajo = document.getElementById('legajo').value.trim();
+
+  const { data, error } = await supabaseClient
+    .from('operarios')
+    .select('*')
+    .eq('legajo', legajo);
+
+  if (error || !data || !data.length) {
+    alert('LEGAJO INVÁLIDO');
+    return;
+  }
+
+  const nuevoOperario = legajo;
+  const nuevoNombre = data[0].nombre;
+
+  // primer ingreso
+  if (!operario) {
+    operario = nuevoOperario;
+    nombre = nuevoNombre;
+
+    document.getElementById('panel').style.display = 'block';
+    document.getElementById('operarioActivo').innerText =
+      "OPERARIO: " + nombre + " (" + operario + ")";
+    return;
+  }
+
+  // cambio de operario sin perder tiempos ya transcurridos
+  if (puestoSeleccionado) {
+    const ahora = new Date().toISOString();
+
+    const prodActiva = await obtenerProduccionActiva();
+    const paradaActiva = await obtenerParadaActiva();
+
+    if (prodActiva) {
+      await supabaseClient
+        .from('registros')
+        .update({
+          fin: ahora,
+          estado: 'finalizado'
+        })
+        .eq('id', prodActiva.id);
+
+      await supabaseClient
+        .from('registros')
+        .insert({
+          producto: prodActiva.producto,
+          operario: nuevoOperario,
+          puesto: prodActiva.puesto,
+          inicio: ahora,
+          fin: null,
+          estado: 'produciendo',
+          motivo_parada: null,
+          tipo_registro: 'cambio_operario'
+        });
+    }
+
+    if (paradaActiva) {
+      await supabaseClient
+        .from('registros')
+        .update({ fin: ahora })
+        .eq('id', paradaActiva.id);
+
+      await supabaseClient
+        .from('registros')
+        .insert({
+          producto: paradaActiva.producto,
+          operario: nuevoOperario,
+          puesto: paradaActiva.puesto,
+          inicio: ahora,
+          fin: null,
+          estado: 'parado',
+          motivo_parada: paradaActiva.motivo_parada,
+          tipo_registro: 'cambio_operario'
+        });
+    }
+  }
+
+  operario = nuevoOperario;
+  nombre = nuevoNombre;
+
+  document.getElementById('panel').style.display = 'block';
+  document.getElementById('operarioActivo').innerText =
+    "OPERARIO: " + nombre + " (" + operario + ")";
+}
+
+// ---------- puesto ----------
+function seleccionarPuesto(num) {
+  if (puestoSeleccionado !== null) return;
+
+  puestoSeleccionado = Number(num);
+
+  const botones = document.querySelectorAll('.btn-puesto');
+  botones.forEach(btn => btn.classList.remove('activo'));
+  botones[num - 1].classList.add('activo');
+
+  document.getElementById('puestoSeleccionadoTexto').innerText =
+    "PUESTO SELECCIONADO: " + (num === 6 ? "PROBADOR" : num);
+
+  document.getElementById('puestos').classList.add('bloqueado');
+  document.getElementById('qr').focus();
+}
+
+// ---------- producción ----------
 async function scan() {
   const qrInput = document.getElementById('qr');
   let qr = qrInput.value.trim();
 
   if (!puestoSeleccionado) {
-    alert("Primero seleccioná un puesto");
+    alert("PRIMERO SELECCIONÁ UN PUESTO");
     return;
   }
 
@@ -375,7 +616,7 @@ async function scan() {
 
   if (error) {
     console.log(error);
-    alert("Error al guardar producción");
+    alert("ERROR AL GUARDAR PRODUCCIÓN");
     return;
   }
 
@@ -391,13 +632,13 @@ async function scan() {
 
 async function registrarParada(motivo) {
   if (!puestoSeleccionado) {
-    alert("Primero seleccioná un puesto");
+    alert("PRIMERO SELECCIONÁ UN PUESTO");
     return;
   }
 
   const prodActiva = await obtenerProduccionActiva();
   if (!prodActiva) {
-    alert("No hay producción activa para detener");
+    alert("NO HAY PRODUCCIÓN ACTIVA PARA DETENER");
     return;
   }
 
@@ -426,7 +667,7 @@ async function registrarParada(motivo) {
 
   if (error) {
     console.log(error);
-    alert("Error al registrar parada");
+    alert("ERROR AL REGISTRAR PARADA");
     return;
   }
 
@@ -437,13 +678,13 @@ async function registrarParada(motivo) {
 
 async function continuarProduccion() {
   if (!puestoSeleccionado) {
-    alert("Primero seleccioná un puesto");
+    alert("PRIMERO SELECCIONÁ UN PUESTO");
     return;
   }
 
   const paradaActiva = await obtenerParadaActiva();
   if (!paradaActiva) {
-    alert("No hay parada activa");
+    alert("NO HAY PARADA ACTIVA");
     return;
   }
 
@@ -458,7 +699,7 @@ async function continuarProduccion() {
     .from('registros')
     .insert({
       producto: paradaActiva.producto,
-      operario: paradaActiva.operario,
+      operario: operario,
       puesto: paradaActiva.puesto,
       inicio: ahora,
       fin: null,
@@ -469,7 +710,7 @@ async function continuarProduccion() {
 
   if (error) {
     console.log(error);
-    alert("Error al continuar producción");
+    alert("ERROR AL CONTINUAR PRODUCCIÓN");
     return;
   }
 
@@ -478,6 +719,52 @@ async function continuarProduccion() {
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
   document.getElementById('qr').focus();
+}
+
+// ---------- turno ----------
+async function finalizarTurno() {
+  if (!puestoSeleccionado) {
+    alert("PRIMERO SELECCIONÁ UN PUESTO");
+    return;
+  }
+
+  const ahora = new Date().toISOString();
+
+  const prodActiva = await obtenerProduccionActiva();
+  const paradaActiva = await obtenerParadaActiva();
+
+  if (prodActiva) {
+    await supabaseClient
+      .from('registros')
+      .update({
+        fin: ahora,
+        estado: 'finalizado'
+      })
+      .eq('id', prodActiva.id);
+  }
+
+  if (paradaActiva) {
+    await supabaseClient
+      .from('registros')
+      .update({ fin: ahora })
+      .eq('id', paradaActiva.id);
+  }
+
+  await supabaseClient
+    .from('registros')
+    .insert({
+      producto: null,
+      operario: operario,
+      puesto: puestoSeleccionado,
+      inicio: ahora,
+      fin: ahora,
+      estado: 'turno_finalizado',
+      motivo_parada: null,
+      tipo_registro: 'turno_finalizado'
+    });
+
+  document.getElementById('continuarWrap').classList.remove('show');
+  setEstado('turno');
 }
 </script>
 </body>
