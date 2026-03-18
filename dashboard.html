@@ -322,23 +322,20 @@ async function cargar(){
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
 
-    if (activoProduccion) {
-      const inicioActivo = parseFecha(activoProduccion.inicio);
-      if (inicioActivo) {
-        tiempoCodigoMs = Math.max(Date.now() - inicioActivo.getTime(), 0);
-      }
-    } else if (activoParada && ultimaLectura) {
-      const inicioLectura = parseFecha(ultimaLectura.inicio);
-      if (inicioLectura) {
-        tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
-      }
-    } else if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado' && ultimaLectura) {
-      const inicioLectura = parseFecha(ultimaLectura.inicio);
+    if (ultimaLectura) {
+  const inicioLectura = parseFecha(ultimaLectura.inicio);
+
+  if (inicioLectura) {
+    if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
       const finTurno = parseFecha(ultimoEvento.fin || ultimoEvento.inicio);
-      if (inicioLectura && finTurno) {
+      if (finTurno) {
         tiempoCodigoMs = Math.max(finTurno.getTime() - inicioLectura.getTime(), 0);
       }
+    } else {
+      tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
     }
+  }
+}
 
     if (ultimoEvento && (ultimoEvento.estado || '').toLowerCase() === 'turno_finalizado') {
       estado = "TURNO FINALIZADO";
