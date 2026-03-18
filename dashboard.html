@@ -109,8 +109,8 @@ h1{
   font-weight:900;
 }
 
-.ok{ color:#00ff88;}
-.mal{ color:#ff3b3b;}
+.ok{ color:#00ff88; }
+.mal{ color:#ff3b3b; }
 
 .botones{
   position:fixed;
@@ -140,6 +140,16 @@ h1{
   padding:10px 14px;
   border-radius:10px;
   font-size:13px;
+}
+
+@media (max-width: 1700px){
+  .grid{ grid-template-columns: repeat(3,1fr); }
+}
+@media (max-width: 1000px){
+  .grid{ grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 700px){
+  .grid{ grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -181,8 +191,8 @@ let intervalo = null;
 
 function parseFecha(valor){
   if(!valor) return null;
-  const fecha = new Date(String(valor).replace(' ', 'T'));
-  return isNaN(fecha.getTime()) ? null : fecha;
+  const f = new Date(valor);
+  return isNaN(f.getTime()) ? null : f;
 }
 
 function formatHoraArgentina(fecha){
@@ -200,21 +210,7 @@ function formatHoraArgentina(fecha){
 }
 
 function timestampArgentinaParaDB(){
-  const ahora = new Date();
-  const partes = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).formatToParts(ahora);
-
-  const m = {};
-  partes.forEach(p => { m[p.type] = p.value; });
-  return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second}`;
+  return new Date().toISOString();
 }
 
 function format(ms){
@@ -229,7 +225,7 @@ function format(ms){
 async function obtenerResetGlobal(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
-    .select('*')
+    .select('reset_desde')
     .eq('id', 1)
     .single();
 
@@ -295,6 +291,7 @@ async function cargar(){
     let tiempoParadaMs = 0;
     let tiempoCodigoMs = 0;
 
+    // TIEMPO TOTAL = desde la primera actividad posterior al reinicio
     if (regsPuesto.length > 0) {
       const inicioPrimero = parseFecha(regsPuesto[0].inicio);
       if (inicioPrimero) {
@@ -302,12 +299,13 @@ async function cargar(){
       }
     }
 
+    // TIEMPO PARADA = suma solo tramos de parada
     regsPuesto.forEach(r => {
       const inicio = parseFecha(r.inicio);
       const fin = parseFecha(r.fin);
-      if (!inicio) return;
-
       const estadoReg = (r.estado || '').toLowerCase();
+
+      if (!inicio) return;
 
       if (estadoReg === 'parado') {
         if (fin) {
@@ -318,20 +316,33 @@ async function cargar(){
       }
     });
 
+    // Activos
     const activoProduccion = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'produciendo');
     const activoParada = regsPuesto.find(r => r.fin == null && (r.estado || '').toLowerCase() === 'parado');
 
+    // Última lectura real de QR (no continuación)
+    const ultimaLectura = [...regsPuesto]
+      .reverse()
+      .find(r => (r.tipo_registro || '').toLowerCase() === 'lectura');
+
+    // PIEZAS = cantidad de lecturas nuevas reales
+    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
+
+    // CODIGO EN CURSO = desde la última lectura, aunque esté parado
+    if (ultimaLectura) {
+      const inicioLectura = parseFecha(ultimaLectura.inicio);
+      if (inicioLectura) {
+        tiempoCodigoMs = Math.max(Date.now() - inicioLectura.getTime(), 0);
+      }
+    }
+
     if (activoProduccion) {
-      estado = "PRODUCCION";
+      estado = "PRODUCIENDO";
       clase = "produciendo";
       legajo = activoProduccion.operario || "-";
       nombre = mapaOperarios[String(activoProduccion.operario)] || "-";
       producto = activoProduccion.producto || "-";
-
-      const inicioActivo = parseFecha(activoProduccion.inicio);
-      if (inicioActivo) {
-        tiempoCodigoMs = Math.max(Date.now() - inicioActivo.getTime(), 0);
-      }
+      motivo = "-";
     } else if (activoParada) {
       estado = "PARADO";
       clase = "parado";
@@ -340,10 +351,7 @@ async function cargar(){
       nombre = mapaOperarios[String(activoParada.operario)] || "-";
       producto = activoParada.producto || "-";
       motivo = activoParada.motivo_parada || "-";
-      tiempoCodigoMs = 0;
     }
-
-    const piezas = regsPuesto.filter(r => (r.tipo_registro || '').toLowerCase() === 'lectura').length;
 
     let objetivo = null;
     if (p >= 1 && p <= 4) objetivo = 13 * 60 * 1000;
@@ -396,11 +404,11 @@ function iniciar(){
 }
 
 async function reiniciarDashboard(){
-  const tsArgentina = timestampArgentinaParaDB();
+  const ts = timestampArgentinaParaDB();
 
   const { error } = await supabaseClient
     .from('dashboard_control')
-    .update({ reset_desde: tsArgentina })
+    .update({ reset_desde: ts })
     .eq('id', 1);
 
   if (error) {
