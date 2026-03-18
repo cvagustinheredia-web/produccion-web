@@ -148,6 +148,41 @@ h1{
   border-radius:10px;
   font-size:13px;
 }
+
+@media (max-width: 1700px){
+  .grid{
+    grid-template-columns: repeat(3,1fr);
+  }
+}
+
+@media (max-width: 1000px){
+  .grid{
+    grid-template-columns: repeat(2,1fr);
+  }
+}
+
+@media (max-width: 700px){
+  .grid{
+    grid-template-columns: 1fr;
+  }
+
+  .header{
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+
+  .header-left,
+  .header-center,
+  .header-right{
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+  }
+
+  .subtitulo{
+    text-align:center;
+  }
+}
 </style>
 </head>
 
@@ -174,7 +209,7 @@ h1{
   <button class="btn reset" onclick="reiniciarDashboard()">REINICIAR</button>
 </div>
 
-<div class="info-reset" id="infoReset">REINICIO: SIN CONFIGURAR</div>
+<div class="info-reset" id="infoReset">REINICIO GLOBAL: SIN CONFIGURAR</div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -184,83 +219,107 @@ const supabaseClient = supabase.createClient(
 
 let intervalo;
 
-function parseFecha(f){
-  if(!f) return null;
-  const fecha = new Date(f);
-  return isNaN(fecha.getTime()) ? null : fecha;
+// ---------- utilidades de fecha ----------
+function parseFecha(valor){
+  if(!valor) return null;
+  const f = new Date(valor);
+  return isNaN(f.getTime()) ? null : f;
 }
 
-function msDiff(i,f){
-  const ini = parseFecha(i);
-  const fin = parseFecha(f);
-  if(!ini || !fin) return 0;
-  return Math.max(fin - ini, 0);
+function formatHoraArgentina(fecha){
+  if(!fecha) return "SIN CONFIGURAR";
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(fecha);
 }
 
-function msNow(i){
-  const ini = parseFecha(i);
-  if(!ini) return 0;
-  return Math.max(Date.now() - ini.getTime(), 0);
+function msDiff(inicio, fin){
+  const i = parseFecha(inicio);
+  const f = parseFecha(fin);
+  if(!i || !f) return 0;
+  return Math.max(f.getTime() - i.getTime(), 0);
+}
+
+function msNow(inicio){
+  const i = parseFecha(inicio);
+  if(!i) return 0;
+  return Math.max(Date.now() - i.getTime(), 0);
 }
 
 function format(ms){
   if(!ms || ms < 0 || isNaN(ms)) ms = 0;
-  let s = Math.floor(ms/1000);
-  let h = Math.floor(s/3600);
-  let m = Math.floor((s%3600)/60);
-  let seg = s%60;
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const seg = s%60;
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(seg).padStart(2,'0')}`;
 }
 
-function fechaMayor(a, b) {
-  if (!a) return b;
-  if (!b) return a;
+function fechaMayor(a,b){
+  if(!a) return b;
+  if(!b) return a;
   return a > b ? a : b;
 }
 
-async function obtenerResetGlobal() {
+// ---------- reset global ----------
+async function obtenerResetGlobal(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
     .select('*')
     .eq('id', 1)
     .single();
 
-  if (error) {
+  if(error){
     console.log(error);
     return null;
   }
 
-  return data?.reset_desde ? new Date(data.reset_desde) : null;
+  return data?.reset_desde ? parseFecha(data.reset_desde) : null;
 }
 
-async function actualizarInfoReset() {
+async function actualizarInfoReset(){
   const resetDesde = await obtenerResetGlobal();
   document.getElementById("infoReset").innerText =
     resetDesde
-      ? "REINICIO GLOBAL DESDE: " + new Date(resetDesde).toLocaleString()
+      ? "REINICIO GLOBAL DESDE: " + formatHoraArgentina(resetDesde)
       : "REINICIO GLOBAL: SIN CONFIGURAR";
 }
 
+// ---------- carga dashboard ----------
 async function cargar(){
-  const {data:reg = []} = await supabaseClient
+  const { data: reg = [], error: errReg } = await supabaseClient
     .from('registros')
     .select('*')
-    .order('inicio',{ascending:true});
+    .order('inicio', { ascending: true });
 
-  const {data:ops = []} = await supabaseClient
+  const { data: ops = [], error: errOps } = await supabaseClient
     .from('operarios')
     .select('*');
+
+  if (errReg || errOps) {
+    console.log(errReg || errOps);
+    return;
+  }
 
   const resetDesde = await obtenerResetGlobal();
 
   const mapa = {};
-  ops.forEach(o => mapa[o.legajo] = o.nombre);
+  ops.forEach(o => {
+    mapa[String(o.legajo)] = o.nombre;
+  });
 
   let html = "";
 
-  for(let p=1; p<=6; p++){
+  for(let p = 1; p <= 6; p++){
     const regs = reg.filter(x => Number(x.puesto) === p);
-    const ultimo = regs[regs.length - 1];
+    const ultimo = regs.length ? regs[regs.length - 1] : null;
     const activo = regs.find(x => x.fin == null);
 
     let estado = "ESPERANDO";
@@ -281,13 +340,14 @@ async function cargar(){
       const fin = parseFecha(x.fin);
       if (!inicio) return;
 
+      // ignora completamente registros que terminaron antes del reset
       if (resetDesde && inicio < resetDesde && (!fin || fin <= resetDesde)) {
         return;
       }
 
       const inicioEfectivo = resetDesde ? fechaMayor(inicio, resetDesde) : inicio;
       const finEfectivo = fin ? fin : new Date();
-      const ms = Math.max(finEfectivo - inicioEfectivo, 0);
+      const ms = Math.max(finEfectivo.getTime() - inicioEfectivo.getTime(), 0);
 
       const estadoReg = (x.estado || "").toLowerCase();
 
@@ -295,11 +355,14 @@ async function cargar(){
         paradaMs += ms;
       } else {
         prodMs += ms;
-        if (!x.fin) {
+
+        // solo cuenta como código en curso si arrancó después del reset
+        if (!x.fin && (!resetDesde || inicio >= resetDesde)) {
           actualMs = ms;
         }
       }
 
+      // piezas solo desde reset
       if (estadoReg !== "parado") {
         if (!resetDesde || inicio >= resetDesde) {
           piezas += 1;
@@ -307,20 +370,21 @@ async function cargar(){
       }
     });
 
-    if(activo){
+    // PRODUCCION solo si hay activo que empezó después del reset
+    if (activo) {
       const inicioActivo = parseFecha(activo.inicio);
-      const activoDespuesReset = !resetDesde || (inicioActivo && inicioActivo >= resetDesde) || (inicioActivo && resetDesde && activo.fin == null);
 
-      if (activoDespuesReset) {
+      if (!resetDesde || (inicioActivo && inicioActivo >= resetDesde)) {
         estado = "PRODUCCION";
         clase = "produciendo";
         legajo = activo.operario || "-";
-        nombre = mapa[activo.operario] || "-";
+        nombre = mapa[String(activo.operario)] || "-";
         producto = activo.producto || "-";
       }
     }
 
-    if(ultimo && (ultimo.estado || "").toLowerCase() === "parado"){
+    // PARADO solo si la parada tiene efecto después del reset
+    if (ultimo && (ultimo.estado || "").toLowerCase() === "parado") {
       const inicioUlt = parseFecha(ultimo.inicio);
       const finUlt = parseFecha(ultimo.fin);
 
@@ -331,20 +395,24 @@ async function cargar(){
         )
       );
 
-      if (mostrarParado && !activo) {
+      const activoValidoPostReset = activo && parseFecha(activo.inicio) && (!resetDesde || parseFecha(activo.inicio) >= resetDesde);
+
+      if (mostrarParado && !activoValidoPostReset) {
         estado = "PARADO";
         clase = "parado";
         blink = "blink";
         legajo = ultimo.operario || "-";
-        nombre = mapa[ultimo.operario] || "-";
+        nombre = mapa[String(ultimo.operario)] || "-";
         producto = ultimo.producto || "-";
         motivo = ultimo.motivo_parada || "-";
         actualMs = 0;
       }
     }
 
+    // si no hubo actividad después del reset, poner todo realmente en cero
     const hayActividadDesdeReset = piezas > 0 || prodMs > 0 || paradaMs > 0 || actualMs > 0;
-    if (!hayActividadDesdeReset && !activo) {
+
+    if (!hayActividadDesdeReset) {
       estado = "ESPERANDO";
       clase = "esperando";
       blink = "";
@@ -352,49 +420,58 @@ async function cargar(){
       nombre = "-";
       producto = "-";
       motivo = "-";
+      prodMs = 0;
+      paradaMs = 0;
+      actualMs = 0;
+      piezas = 0;
     }
 
-    let objetivo = (p <= 4) ? 13 * 60 * 1000 : (p == 5 ? 25 * 60 * 1000 : null);
-    let estadoTiempo = "";
+    // objetivo por puesto
+    let objetivo = null;
+    if (p >= 1 && p <= 4) objetivo = 13 * 60 * 1000;
+    if (p === 5) objetivo = 25 * 60 * 1000;
 
-    if (objetivo) {
+    let estadoTiempo = "";
+    if (objetivo !== null) {
       estadoTiempo = actualMs <= objetivo
         ? `<span class="ok">OK</span>`
         : `<span class="mal">EXCEDIDO</span>`;
     }
 
     html += `
-    <div class="card ${clase} ${blink}">
-      <div class="titulo">${p == 6 ? "PROBADOR" : "PUESTO " + p}</div>
+      <div class="card ${clase} ${blink}">
+        <div class="titulo">${p === 6 ? "PROBADOR" : "PUESTO " + p}</div>
 
-      <div class="campo"><b>ESTADO:</b> ${estado}</div>
-      <div class="campo"><b>LEGAJO:</b> ${legajo}</div>
-      <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
-      <div class="campo"><b>PRODUCTO:</b> ${producto}</div>
-      <div class="campo"><b>MOTIVO:</b> ${motivo}</div>
-      <div class="campo"><b>PIEZAS:</b> ${piezas}</div>
+        <div class="campo"><b>ESTADO:</b> ${estado}</div>
+        <div class="campo"><b>LEGAJO:</b> ${legajo}</div>
+        <div class="campo"><b>OPERARIO:</b> ${nombre}</div>
+        <div class="campo"><b>PRODUCTO:</b> ${producto}</div>
+        <div class="campo"><b>MOTIVO:</b> ${motivo}</div>
+        <div class="campo"><b>PIEZAS:</b> ${piezas}</div>
 
-      <div class="contador">
-        TIEMPO TOTAL
-        <div class="valor">${format(prodMs)}</div>
+        <div class="contador">
+          TIEMPO TOTAL
+          <div class="valor">${format(prodMs)}</div>
+        </div>
+
+        <div class="contador">
+          CODIGO EN CURSO
+          <div class="valor">${format(actualMs)} ${estadoTiempo}</div>
+        </div>
+
+        <div class="contador">
+          TIEMPO PARADA
+          <div class="valor">${format(paradaMs)}</div>
+        </div>
       </div>
-
-      <div class="contador">
-        CODIGO EN CURSO
-        <div class="valor">${format(actualMs)} ${estadoTiempo}</div>
-      </div>
-
-      <div class="contador">
-        TIEMPO PARADA
-        <div class="valor">${format(paradaMs)}</div>
-      </div>
-    </div>`;
+    `;
   }
 
   document.getElementById("grid").innerHTML = html;
   await actualizarInfoReset();
 }
 
+// ---------- controles ----------
 function iniciar(){
   if(intervalo) clearInterval(intervalo);
   cargar();
@@ -409,7 +486,7 @@ async function reiniciarDashboard(){
     .update({ reset_desde: ahora })
     .eq('id', 1);
 
-  if (error) {
+  if(error){
     alert("Error al reiniciar globalmente");
     console.log(error);
     return;
