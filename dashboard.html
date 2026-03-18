@@ -211,19 +211,25 @@ function format(ms){
   return `${String(horas).padStart(2,'0')}:${String(minutos).padStart(2,'0')}:${String(segundos).padStart(2,'0')}`;
 }
 
+// ---------- reset global ----------
 async function obtenerResetGlobal(){
   const { data, error } = await supabaseClient
     .from('dashboard_control')
-    .select('reset_desde')
+    .select('id, reset_desde')
     .eq('id', 1)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    console.log(error);
+    console.log("Error leyendo reset global:", error);
     return null;
   }
 
-  return data?.reset_desde ? parseFecha(data.reset_desde) : null;
+  if (!data) {
+    console.log("No existe fila dashboard_control id=1");
+    return null;
+  }
+
+  return data.reset_desde ? parseFecha(data.reset_desde) : null;
 }
 
 async function actualizarInfoReset(){
@@ -260,7 +266,6 @@ async function cargar(){
   let html = '';
 
   for(let p = 1; p <= 6; p++){
-    // SOLO registros iniciados DESPUÉS del reinicio
     const regsPuesto = reg
       .filter(x => Number(x.puesto) === p)
       .filter(x => {
@@ -293,7 +298,7 @@ async function cargar(){
 
     const ultimoEvento = regsPuesto.length ? regsPuesto[regsPuesto.length - 1] : null;
 
-    // si NO hubo nada después del reinicio, todo en cero
+    // Si no hubo nada después del reinicio, mostrar todo en cero
     if (regsPuesto.length === 0) {
       html += `
         <div class="card esperando">
@@ -353,7 +358,7 @@ async function cargar(){
       }
     });
 
-    // CODIGO EN CURSO = desde última lectura real
+    // CODIGO EN CURSO
     if (ultimaLectura) {
       const inicioLectura = parseFecha(ultimaLectura.inicio);
       if (inicioLectura) {
@@ -453,20 +458,27 @@ function iniciar(){
 async function reiniciarDashboard(){
   const ts = new Date().toISOString();
 
-  const { error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('dashboard_control')
-    .update({ reset_desde: ts })
-    .eq('id', 1);
+    .upsert(
+      [{ id: 1, reset_desde: ts }],
+      { onConflict: 'id' }
+    )
+    .select();
 
   if (error) {
     alert("Error al reiniciar globalmente");
-    console.log(error);
+    console.log("Error guardando reset:", error);
     return;
   }
 
+  console.log("Reset global guardado:", data);
+
   clearInterval(intervalo);
   document.getElementById("grid").innerHTML = "";
-  setTimeout(iniciar, 200);
+  setTimeout(() => {
+    iniciar();
+  }, 200);
 }
 
 iniciar();
