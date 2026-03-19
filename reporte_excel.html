@@ -579,10 +579,117 @@ async function obtenerRegistrosFiltrados(){
 
   return datos;
 }
-
+function obtenerClavePieza(r){
+  return String(
+    r.qr ||
+    r.codigo_qr ||
+    r.codigo_producto ||
+    r.producto ||
+    r.modelo ||
+    ""
+  ).trim().toUpperCase();
+}
 function construirDetalle(regs){
   const detalle = [];
   const grupos = {};
+
+  regs.forEach(r => {
+    const key = `${r.sector || ''}||${r.linea || ''}||${r.puesto || ''}`;
+    if (!grupos[key]) grupos[key] = [];
+    grupos[key].push(r);
+  });
+
+  Object.values(grupos).forEach(lista => {
+    lista.sort((a, b) => {
+      const fa = parseFecha(a.inicio);
+      const fb = parseFecha(b.inicio);
+      return (fa ? fa.getTime() : 0) - (fb ? fb.getTime() : 0);
+    });
+
+    // Solo registros que NO sean paradas
+    const noParadas = lista.filter(r => {
+      const estado = String(r.estado || '').trim().toLowerCase();
+      return estado !== 'parado';
+    });
+
+    // Nos quedamos solo con los cambios reales de pieza/QR.
+    // Si hay varios registros seguidos de la MISMA pieza, cuenta una sola vez.
+    const eventosPieza = [];
+    let ultimaClave = null;
+
+    noParadas.forEach(r => {
+      const clave = obtenerClavePieza(r);
+      if (!clave) return;
+
+      if (clave !== ultimaClave) {
+        eventosPieza.push(r);
+        ultimaClave = clave;
+      }
+    });
+
+    eventosPieza.forEach((r, idx) => {
+      const siguiente = eventosPieza[idx + 1];
+      if (!siguiente) return; // la última queda abierta hasta que llegue otra pieza
+
+      const inicio = parseFecha(r.inicio);
+      const fin = parseFecha(siguiente.inicio);
+
+      if (!inicio || !fin) return;
+
+      const tiempoFabMs = Math.max(fin.getTime() - inicio.getTime(), 0);
+
+      const paradasDelProducto = lista.filter(x => {
+        const estadoX = String(x.estado || '').trim().toLowerCase();
+        if (estadoX !== 'parado') return false;
+
+        const iniParada = parseFecha(x.inicio);
+        if (!iniParada) return false;
+
+        return iniParada >= inicio && iniParada < fin;
+      });
+
+      let tiempoParadaProductoMs = 0;
+
+      paradasDelProducto.forEach(p => {
+        const iniP = parseFecha(p.inicio);
+        const finP = p.fin ? parseFecha(p.fin) : new Date();
+
+        if (!iniP || !finP) return;
+
+        const desde = Math.max(iniP.getTime(), inicio.getTime());
+        const hasta = Math.min(finP.getTime(), fin.getTime());
+
+        if (hasta > desde) {
+          tiempoParadaProductoMs += (hasta - desde);
+        }
+      });
+
+      const tiempoParadaPuestoMs = tiempoParadaTotalPorPuestoEnRango(
+        lista,
+        r.sector,
+        r.linea,
+        r.puesto,
+        inicio,
+        fin
+      );
+
+      detalle.push({
+        sector: r.sector || "",
+        linea: r.linea || "",
+        puesto: r.puesto || "",
+        producto: r.producto || r.qr || r.codigo_producto || r.codigo_qr || "SIN PRODUCTO",
+        inicio: formatFechaHora(r.inicio),
+        fin: formatFechaHora(siguiente.inicio),
+        tiempo_fabricacion: msToTime(tiempoFabMs),
+        tiempo_parada_producto: msToTime(tiempoParadaProductoMs),
+        tiempo_parada_total_puesto: msToTime(tiempoParadaPuestoMs),
+        _tiempo_fabricacion_ms: tiempoFabMs
+      });
+    });
+  });
+
+  return detalle;
+}
 
   regs.forEach(r => {
     const key = `${r.sector || ''}||${r.linea || ''}||${r.puesto || ''}`;
