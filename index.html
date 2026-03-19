@@ -187,6 +187,56 @@
     .help{color:var(--muted);font-size:13px;margin-top:8px}
     .continuar-wrap{display:none;margin-top:14px}
     .continuar-wrap.show{display:block}
+
+    .visor-toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .visor-info{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .visor-estado{
+      font-size:14px;
+      font-weight:800;
+      color:var(--muted);
+    }
+    .visor-estado.ok{ color: var(--green); }
+    .visor-estado.error{ color: var(--red); }
+    .visor-frame-wrap{
+      border:1px solid var(--border);
+      border-radius:14px;
+      overflow:hidden;
+      background:#dde6ef;
+      min-height:720px;
+    }
+    .visor-frame{
+      width:100%;
+      height:720px;
+      border:none;
+      background:#fff;
+    }
+    .visor-placeholder{
+      min-height:240px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:var(--muted);
+      font-weight:800;
+      padding:30px;
+    }
+
+    @media (max-width:900px){
+      .visor-frame{ height:560px; }
+      .visor-frame-wrap{ min-height:560px; }
+    }
   </style>
 </head>
 <body>
@@ -275,6 +325,27 @@
         </div>
       </div>
     </div>
+
+    <div id="visorPlanoCard" class="card" style="display:none;">
+      <div class="visor-toolbar">
+        <div>
+          <h2 class="section-title" style="margin-bottom:6px;">PLANO ACTIVO</h2>
+          <div class="help">El plano se carga automáticamente al escanear el QR y se muestra en esta misma pestaña.</div>
+        </div>
+        <div class="visor-info">
+          <div class="tag" id="codigoPlanoActual">CÓDIGO: -</div>
+          <div class="visor-estado" id="estadoPlano">SIN PLANO CARGADO</div>
+          <button class="btn btn-primary" type="button" onclick="recargarPlanoActual()">RECARGAR PLANO</button>
+        </div>
+      </div>
+
+      <div class="visor-frame-wrap">
+        <div id="visorPlaceholder" class="visor-placeholder">
+          Escaneá un producto para cargar automáticamente el plano PDF.
+        </div>
+        <iframe id="visorPlano" class="visor-frame" style="display:none;" title="Plano PDF"></iframe>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -282,6 +353,8 @@ const supabaseClient = supabase.createClient(
   "https://gqlftpalwqybyywdplei.supabase.co",
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
+
+const BASE_PLANOS = "http://localhost:3010";
 
 const LINEAS = {
   "LINEA MOTOR": [
@@ -313,6 +386,8 @@ let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
 let lineaSeleccionada = 'LINEA MOTOR';
+let ultimoCodigoPlano = '';
+let ultimaUrlPlano = '';
 
 function formatearFechaArgentina(fechaIso) {
   return new Intl.DateTimeFormat('es-AR', {
@@ -347,6 +422,93 @@ function setEstado(tipo) {
   } else {
     box.classList.add('esperando');
     box.innerText = 'ESPERANDO';
+  }
+}
+
+function setEstadoPlano(texto, tipo = '') {
+  const el = document.getElementById('estadoPlano');
+  el.innerText = texto;
+  el.className = 'visor-estado';
+  if (tipo) el.classList.add(tipo);
+}
+
+function mostrarPlanoEnVisor(urlCompleta, codigo) {
+  const card = document.getElementById('visorPlanoCard');
+  const frame = document.getElementById('visorPlano');
+  const placeholder = document.getElementById('visorPlaceholder');
+
+  card.style.display = 'block';
+  placeholder.style.display = 'none';
+  frame.style.display = 'block';
+
+  frame.src = urlCompleta;
+  document.getElementById('codigoPlanoActual').innerText = 'CÓDIGO: ' + (codigo || '-');
+  setEstadoPlano('PLANO CARGADO', 'ok');
+
+  ultimaUrlPlano = urlCompleta;
+  ultimoCodigoPlano = codigo || '';
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function mostrarErrorPlano(mensaje, codigo = '') {
+  const card = document.getElementById('visorPlanoCard');
+  const frame = document.getElementById('visorPlano');
+  const placeholder = document.getElementById('visorPlaceholder');
+
+  card.style.display = 'block';
+  frame.style.display = 'none';
+  frame.src = '';
+  placeholder.style.display = 'flex';
+  placeholder.innerText = mensaje;
+
+  document.getElementById('codigoPlanoActual').innerText = 'CÓDIGO: ' + (codigo || '-');
+  setEstadoPlano('NO ENCONTRADO', 'error');
+
+  ultimaUrlPlano = '';
+  ultimoCodigoPlano = codigo || '';
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function abrirPlanoAutomatico(codigoQR) {
+  try {
+    const codigo = String(codigoQR || '').trim();
+    if (!codigo) return;
+
+    setEstadoPlano('BUSCANDO PLANO...');
+    document.getElementById('visorPlanoCard').style.display = 'block';
+    document.getElementById('codigoPlanoActual').innerText = 'CÓDIGO: ' + codigo;
+
+    const resp = await fetch(`${BASE_PLANOS}/buscar?codigo=${encodeURIComponent(codigo)}`);
+
+    if (!resp.ok) {
+      mostrarErrorPlano('No se encontró plano para el código escaneado.', codigo);
+      return;
+    }
+
+    const data = await resp.json();
+
+    if (!data || !data.url) {
+      mostrarErrorPlano('No se recibió una URL válida del plano.', codigo);
+      return;
+    }
+
+    const urlCompleta = `${BASE_PLANOS}${data.url}`;
+    mostrarPlanoEnVisor(urlCompleta, codigo);
+  } catch (error) {
+    console.error('Error abriendo plano:', error);
+    mostrarErrorPlano('No se pudo conectar con el servicio de planos. Verificá que el PowerShell siga abierto.', codigoQR);
+  }
+}
+
+function recargarPlanoActual() {
+  if (ultimoCodigoPlano) {
+    abrirPlanoAutomatico(ultimoCodigoPlano);
+  } else if (ultimaUrlPlano) {
+    mostrarPlanoEnVisor(ultimaUrlPlano, ultimoCodigoPlano);
+  } else {
+    mostrarErrorPlano('Todavía no hay ningún plano cargado.');
   }
 }
 
@@ -595,6 +757,9 @@ async function scan() {
   document.getElementById('ultimaParada').innerText = '-';
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
+
+  await abrirPlanoAutomatico(qr);
+
   qrInput.value = '';
   qrInput.focus();
 }
