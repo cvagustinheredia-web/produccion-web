@@ -19,7 +19,9 @@
       --gray:#7f8c98;
       --shadow:0 8px 20px rgba(0,0,0,.08);
     }
+
     *{box-sizing:border-box}
+
     body{
       margin:0;
       padding:24px;
@@ -27,24 +29,28 @@
       background:linear-gradient(180deg,#edf2f7 0%, #e7edf4 100%);
       color:var(--text);
     }
+
     .container{
       max-width:1250px;
       margin:0 auto;
       display:grid;
       gap:20px;
     }
+
     .topbar{
       display:grid;
       grid-template-columns:1fr auto;
       align-items:center;
       gap:16px;
     }
+
     .brand h1{
       margin:0;
       font-size:34px;
       font-weight:900;
       color:#13314a;
     }
+
     .brand p{
       margin:4px 0 0;
       font-size:16px;
@@ -52,6 +58,7 @@
       color:#607386;
       text-transform:uppercase;
     }
+
     .logo{
       height:80px;
       background:#fff;
@@ -60,6 +67,7 @@
       padding:6px;
       box-shadow:var(--shadow);
     }
+
     .card{
       background:var(--panel);
       border:1px solid var(--border);
@@ -67,12 +75,14 @@
       padding:22px;
       box-shadow:var(--shadow);
     }
+
     .header-title,.section-title{
       margin:0 0 12px;
       font-size:28px;
       font-weight:900;
       color:#163047;
     }
+
     .mini-title{
       margin:18px 0 10px;
       font-size:18px;
@@ -80,6 +90,7 @@
       text-transform:uppercase;
       color:#163047;
     }
+
     .label{
       display:block;
       font-size:13px;
@@ -88,12 +99,14 @@
       text-transform:uppercase;
       font-weight:700;
     }
+
     .input-row,.row,.actions,.grupo-botones{
       display:flex;
       flex-wrap:wrap;
       gap:12px;
       align-items:flex-end;
     }
+
     input,select{
       width:100%;
       max-width:360px;
@@ -105,10 +118,12 @@
       font-size:18px;
       outline:none;
     }
+
     input:focus,select:focus{
       border-color:var(--blue);
       box-shadow:0 0 0 3px rgba(31,120,209,.12);
     }
+
     .btn{
       border:none;
       border-radius:12px;
@@ -119,20 +134,28 @@
       color:#fff;
       min-height:50px;
     }
+
     .btn-primary{background:var(--blue)}
     .btn-success{background:var(--green)}
     .btn-orange{background:var(--orange)}
     .btn-gray{background:#7a8895}
+
     .btn-puesto{
       min-width:120px;
       background:#dce7f2;
       color:#1c3e5c;
     }
+
     .btn-puesto.activo{
       background:var(--blue);
       color:#fff;
     }
-    .bloqueado{pointer-events:none;opacity:.6}
+
+    .bloqueado{
+      pointer-events:none;
+      opacity:.6
+    }
+
     .tag{
       display:inline-block;
       background:#edf4fb;
@@ -143,6 +166,7 @@
       font-size:14px;
       font-weight:800;
     }
+
     .status-box{
       min-width:280px;
       padding:18px 20px;
@@ -155,22 +179,26 @@
       display:inline-block;
       box-shadow:var(--shadow);
     }
+
     .esperando{background:#8391a0}
     .produciendo{background:#1fa15a}
     .parado{background:#d64545}
     .turno{background:#e58b1b}
+
     .info-grid{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
       gap:14px;
       margin-top:18px;
     }
+
     .info-card{
       background:var(--panel2);
       border:1px solid var(--border);
       border-radius:14px;
       padding:16px;
     }
+
     .info-card .k{
       color:var(--muted);
       font-size:13px;
@@ -178,64 +206,27 @@
       margin-bottom:8px;
       font-weight:700;
     }
+
     .info-card .v{
       font-size:24px;
       font-weight:900;
       color:#163047;
       word-break:break-word;
     }
-    .help{color:var(--muted);font-size:13px;margin-top:8px}
-    .continuar-wrap{display:none;margin-top:14px}
-    .continuar-wrap.show{display:block}
 
-    .visor-toolbar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:14px;
-    }
-    .visor-info{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-    }
-    .visor-estado{
-      font-size:14px;
-      font-weight:800;
+    .help{
       color:var(--muted);
-    }
-    .visor-estado.ok{ color: var(--green); }
-    .visor-estado.error{ color: var(--red); }
-    .visor-frame-wrap{
-      border:1px solid var(--border);
-      border-radius:14px;
-      overflow:hidden;
-      background:#dde6ef;
-      min-height:720px;
-    }
-    .visor-frame{
-      width:100%;
-      height:720px;
-      border:none;
-      background:#fff;
-    }
-    .visor-placeholder{
-      min-height:240px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      color:var(--muted);
-      font-weight:800;
-      padding:30px;
+      font-size:13px;
+      margin-top:8px;
     }
 
-    @media (max-width:900px){
-      .visor-frame{ height:560px; }
-      .visor-frame-wrap{ min-height:560px; }
+    .continuar-wrap{
+      display:none;
+      margin-top:14px;
+    }
+
+    .continuar-wrap.show{
+      display:block;
     }
   </style>
 </head>
@@ -325,27 +316,6 @@
         </div>
       </div>
     </div>
-
-    <div id="visorPlanoCard" class="card" style="display:none;">
-      <div class="visor-toolbar">
-        <div>
-          <h2 class="section-title" style="margin-bottom:6px;">PLANO ACTIVO</h2>
-          <div class="help">El plano se carga automáticamente al escanear el QR y se muestra en esta misma pestaña.</div>
-        </div>
-        <div class="visor-info">
-          <div class="tag" id="codigoPlanoActual">CÓDIGO: -</div>
-          <div class="visor-estado" id="estadoPlano">SIN PLANO CARGADO</div>
-          <button class="btn btn-primary" type="button" onclick="recargarPlanoActual()">RECARGAR PLANO</button>
-        </div>
-      </div>
-
-      <div class="visor-frame-wrap">
-        <div id="visorPlaceholder" class="visor-placeholder">
-          Escaneá un producto para cargar automáticamente el plano PDF.
-        </div>
-        <iframe id="visorPlano" class="visor-frame" style="display:none;" title="Plano PDF"></iframe>
-      </div>
-    </div>
   </div>
 
 <script>
@@ -386,8 +356,6 @@ let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
 let lineaSeleccionada = 'LINEA MOTOR';
-let ultimoCodigoPlano = '';
-let ultimaUrlPlano = '';
 
 function formatearFechaArgentina(fechaIso) {
   return new Intl.DateTimeFormat('es-AR', {
@@ -410,6 +378,7 @@ function limpiarProducto(valor) {
 function setEstado(tipo) {
   const box = document.getElementById('estadoProduccion');
   box.className = 'status-box';
+
   if (tipo === 'produciendo') {
     box.classList.add('produciendo');
     box.innerText = 'PRODUCIENDO';
@@ -422,93 +391,6 @@ function setEstado(tipo) {
   } else {
     box.classList.add('esperando');
     box.innerText = 'ESPERANDO';
-  }
-}
-
-function setEstadoPlano(texto, tipo = '') {
-  const el = document.getElementById('estadoPlano');
-  el.innerText = texto;
-  el.className = 'visor-estado';
-  if (tipo) el.classList.add(tipo);
-}
-
-function mostrarPlanoEnVisor(urlCompleta, codigo) {
-  const card = document.getElementById('visorPlanoCard');
-  const frame = document.getElementById('visorPlano');
-  const placeholder = document.getElementById('visorPlaceholder');
-
-  card.style.display = 'block';
-  placeholder.style.display = 'none';
-  frame.style.display = 'block';
-
-  frame.src = urlCompleta;
-  document.getElementById('codigoPlanoActual').innerText = 'CÓDIGO: ' + (codigo || '-');
-  setEstadoPlano('PLANO CARGADO', 'ok');
-
-  ultimaUrlPlano = urlCompleta;
-  ultimoCodigoPlano = codigo || '';
-
-  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function mostrarErrorPlano(mensaje, codigo = '') {
-  const card = document.getElementById('visorPlanoCard');
-  const frame = document.getElementById('visorPlano');
-  const placeholder = document.getElementById('visorPlaceholder');
-
-  card.style.display = 'block';
-  frame.style.display = 'none';
-  frame.src = '';
-  placeholder.style.display = 'flex';
-  placeholder.innerText = mensaje;
-
-  document.getElementById('codigoPlanoActual').innerText = 'CÓDIGO: ' + (codigo || '-');
-  setEstadoPlano('NO ENCONTRADO', 'error');
-
-  ultimaUrlPlano = '';
-  ultimoCodigoPlano = codigo || '';
-
-  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-async function abrirPlanoAutomatico(codigoQR) {
-  try {
-    const codigo = String(codigoQR || '').trim();
-    if (!codigo) return;
-
-    setEstadoPlano('BUSCANDO PLANO...');
-    document.getElementById('visorPlanoCard').style.display = 'block';
-    document.getElementById('codigoPlanoActual').innerText = 'CÓDIGO: ' + codigo;
-
-    const resp = await fetch(`${BASE_PLANOS}/buscar?codigo=${encodeURIComponent(codigo)}`);
-
-    if (!resp.ok) {
-      mostrarErrorPlano('No se encontró plano para el código escaneado.', codigo);
-      return;
-    }
-
-    const data = await resp.json();
-
-    if (!data || !data.url) {
-      mostrarErrorPlano('No se recibió una URL válida del plano.', codigo);
-      return;
-    }
-
-    const urlCompleta = `${BASE_PLANOS}${data.url}`;
-    mostrarPlanoEnVisor(urlCompleta, codigo);
-  } catch (error) {
-    console.error('Error abriendo plano:', error);
-    mostrarErrorPlano('No se pudo conectar con el servicio de planos. Verificá que el PowerShell siga abierto.', codigoQR);
-  }
-}
-
-function recargarPlanoActual() {
-  if (ultimoCodigoPlano) {
-    abrirPlanoAutomatico(ultimoCodigoPlano);
-  } else if (ultimaUrlPlano) {
-    mostrarPlanoEnVisor(ultimaUrlPlano, ultimoCodigoPlano);
-  } else {
-    mostrarErrorPlano('Todavía no hay ningún plano cargado.');
   }
 }
 
@@ -530,6 +412,7 @@ function renderPuestos() {
   const cont = document.getElementById('puestos');
   cont.innerHTML = '';
   const puestos = LINEAS[lineaSeleccionada] || [];
+
   puestos.forEach((p) => {
     const btn = document.createElement('button');
     btn.className = 'btn btn-puesto';
@@ -557,11 +440,13 @@ async function obtenerSesionActual() {
     console.log("Error obteniendo sesión actual:", error);
     return 1;
   }
+
   return data.sesion_actual || 1;
 }
 
 async function buscarOperario() {
   const legajo = document.getElementById('legajo').value.trim();
+
   if (!legajo) {
     document.getElementById('nombreOperario').innerText = '';
     return;
@@ -578,6 +463,7 @@ async function buscarOperario() {
 
 async function obtenerProduccionActiva() {
   const sesionActual = await obtenerSesionActual();
+
   const { data } = await supabaseClient
     .from('registros')
     .select('*')
@@ -594,6 +480,7 @@ async function obtenerProduccionActiva() {
 
 async function obtenerParadaActiva() {
   const sesionActual = await obtenerSesionActual();
+
   const { data } = await supabaseClient
     .from('registros')
     .select('*')
@@ -623,6 +510,7 @@ async function login() {
 
   const nuevoOperario = legajo;
   const nuevoNombre = data[0].nombre;
+
   lineaSeleccionada = document.getElementById('linea').value;
   document.getElementById('lineaSeleccionadaTexto').innerText = 'LÍNEA: ' + lineaSeleccionada;
 
@@ -692,10 +580,12 @@ async function login() {
 
 function seleccionarPuesto(num) {
   if (puestoSeleccionado !== null) return;
+
   puestoSeleccionado = Number(num);
 
   const botones = document.querySelectorAll('.btn-puesto');
   botones.forEach(btn => btn.classList.remove('activo'));
+
   const idx = (LINEAS[lineaSeleccionada] || []).findIndex(p => p.valor === num);
   if (idx >= 0) botones[idx].classList.add('activo');
 
@@ -703,6 +593,22 @@ function seleccionarPuesto(num) {
   document.getElementById('puestos').classList.add('bloqueado');
   document.getElementById('linea').disabled = true;
   document.getElementById('qr').focus();
+}
+
+function abrirPlanoAutomatico(codigoQR) {
+  const codigo = String(codigoQR || '').trim();
+  if (!codigo) return;
+
+  const url = `${BASE_PLANOS}/abrir?codigo=${encodeURIComponent(codigo)}`;
+  window.open(url, '_blank');
+
+  setTimeout(() => {
+    const qrInput = document.getElementById('qr');
+    if (qrInput) {
+      qrInput.value = '';
+      qrInput.focus();
+    }
+  }, 150);
 }
 
 async function scan() {
@@ -713,15 +619,19 @@ async function scan() {
     alert("PRIMERO SELECCIONÁ UN PUESTO");
     return;
   }
+
   if (!qr) return;
 
   qr = limpiarProducto(qr);
+
   const ahora = new Date().toISOString();
   const sesionActual = await obtenerSesionActual();
 
   const paradaActiva = await obtenerParadaActiva();
   if (paradaActiva) {
-    await supabaseClient.from('registros').update({ fin: ahora }).eq('id', paradaActiva.id);
+    await supabaseClient.from('registros')
+      .update({ fin: ahora })
+      .eq('id', paradaActiva.id);
   }
 
   const prodActiva = await obtenerProduccionActiva();
@@ -758,7 +668,7 @@ async function scan() {
   document.getElementById('continuarWrap').classList.remove('show');
   setEstado('produciendo');
 
-  await abrirPlanoAutomatico(qr);
+  abrirPlanoAutomatico(qr);
 
   qrInput.value = '';
   qrInput.focus();
