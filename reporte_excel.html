@@ -31,7 +31,7 @@
     }
 
     .container{
-      max-width:1400px;
+      max-width:1450px;
       margin:0 auto;
       display:grid;
       gap:20px;
@@ -182,6 +182,7 @@
       padding:10px 8px;
       text-align:left;
       vertical-align:top;
+      white-space:nowrap;
     }
 
     th{
@@ -305,7 +306,7 @@
     <div class="card">
       <h2 class="title">PREVISUALIZACIÓN DETALLE</h2>
       <div class="muted" style="margin-bottom:12px;">
-        Se exportan solo las piezas cerradas, es decir, cuando una pieza queda completada por la lectura de una pieza distinta en el mismo puesto.
+        Se exportan solo las piezas cerradas, es decir, cuando una lectura de producción queda completada por la siguiente lectura del mismo puesto.
       </div>
       <div style="overflow:auto;">
         <table>
@@ -314,6 +315,8 @@
               <th>Sector</th>
               <th>Línea</th>
               <th>Puesto</th>
+              <th>Legajo</th>
+              <th>Operario</th>
               <th>Producto</th>
               <th>Inicio</th>
               <th>Fin</th>
@@ -323,7 +326,7 @@
             </tr>
           </thead>
           <tbody id="tablaDetalle">
-            <tr><td colspan="9" class="muted">Todavía no hay datos cargados.</td></tr>
+            <tr><td colspan="11" class="muted">Todavía no hay datos cargados.</td></tr>
           </tbody>
         </table>
       </div>
@@ -386,15 +389,25 @@ let detalleActual = [];
 let resumenActual = [];
 let paradasDetalleActual = [];
 
-function obtenerClavePieza(r){
-  return String(
-    r.qr ||
-    r.codigo_qr ||
-    r.codigo_producto ||
-    r.producto ||
-    r.modelo ||
-    ""
-  ).trim().toUpperCase();
+function esRegistroLectura(r){
+  const tipo = String(r.tipo_registro || '').trim().toLowerCase();
+  const estado = String(r.estado || '').trim().toLowerCase();
+
+  if (estado === 'parado') return false;
+
+  if (tipo) {
+    return ['lectura', 'qr', 'produccion', 'fabricacion'].includes(tipo);
+  }
+
+  return true;
+}
+
+function obtenerLegajo(r){
+  return r.legajo || r.leg_operario || r.operario_legajo || "";
+}
+
+function obtenerNombreOperario(r){
+  return r.nombre_operario || r.operario || r.nombre || r.usuario || "";
 }
 
 function msToTime(ms){
@@ -608,26 +621,10 @@ function construirDetalle(regs){
       return (fa ? fa.getTime() : 0) - (fb ? fb.getTime() : 0);
     });
 
-    const noParadas = lista.filter(r => {
-      const estado = String(r.estado || '').trim().toLowerCase();
-      return estado !== 'parado';
-    });
+    const lecturas = lista.filter(esRegistroLectura);
 
-    const eventosPieza = [];
-    let ultimaClave = null;
-
-    noParadas.forEach(r => {
-      const clave = obtenerClavePieza(r);
-      if (!clave) return;
-
-      if (clave !== ultimaClave) {
-        eventosPieza.push(r);
-        ultimaClave = clave;
-      }
-    });
-
-    eventosPieza.forEach((r, idx) => {
-      const siguiente = eventosPieza[idx + 1];
+    lecturas.forEach((r, idx) => {
+      const siguiente = lecturas[idx + 1];
       if (!siguiente) return;
 
       const inicio = parseFecha(r.inicio);
@@ -676,6 +673,8 @@ function construirDetalle(regs){
         sector: r.sector || "",
         linea: r.linea || "",
         puesto: r.puesto || "",
+        legajo: obtenerLegajo(r),
+        operario: obtenerNombreOperario(r),
         producto: r.producto || r.qr || r.codigo_producto || r.codigo_qr || "SIN PRODUCTO",
         inicio: formatFechaHora(r.inicio),
         fin: formatFechaHora(siguiente.inicio),
@@ -763,7 +762,7 @@ function pintarDetalle(detalle){
   const tbody = document.getElementById("tablaDetalle");
 
   if (!detalle.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="muted">No hay datos de producción para los filtros seleccionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="muted">No hay datos de producción para los filtros seleccionados.</td></tr>`;
     return;
   }
 
@@ -772,6 +771,8 @@ function pintarDetalle(detalle){
       <td>${d.sector}</td>
       <td>${d.linea}</td>
       <td>${d.puesto}</td>
+      <td>${d.legajo}</td>
+      <td>${d.operario}</td>
       <td>${d.producto}</td>
       <td>${d.inicio}</td>
       <td>${d.fin}</td>
@@ -828,6 +829,8 @@ function exportarExcel(){
     sector: d.sector,
     linea: d.linea,
     puesto: d.puesto,
+    legajo: d.legajo,
+    operario: d.operario,
     producto: d.producto,
     inicio: d.inicio,
     fin: d.fin,
