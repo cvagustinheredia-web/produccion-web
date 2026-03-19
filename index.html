@@ -600,8 +600,11 @@ function abrirPlanoAutomatico(codigoQR) {
   if (!codigo) return;
 
   const url = `${BASE_PLANOS}/abrir?codigo=${encodeURIComponent(codigo)}`;
-  window.open(url, '_blank');
 
+  // 🔥 clave: misma ventana siempre
+  window.open(url, 'MOIE_PLANO');
+
+  // dejar listo el siguiente QR
   setTimeout(() => {
     const qrInput = document.getElementById('qr');
     if (qrInput) {
