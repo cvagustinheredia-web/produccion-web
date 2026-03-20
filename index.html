@@ -617,7 +617,6 @@ function abrirPlanoAutomatico(codigoQR) {
   try {
     if (ventanaPlano && !ventanaPlano.closed) {
       ventanaPlano.location.href = url;
-      ventanaPlano.focus();
     } else {
       ventanaPlano = window.open(url, 'MOIE_PLANO');
     }
@@ -625,13 +624,15 @@ function abrirPlanoAutomatico(codigoQR) {
     ventanaPlano = window.open(url, 'MOIE_PLANO');
   }
 
+  // 🔥 devolvemos el foco al index para seguir leyendo QR acá
   setTimeout(() => {
+    window.focus();
     const qrInput = document.getElementById('qr');
     if (qrInput) {
       qrInput.value = '';
       qrInput.focus();
     }
-  }, 150);
+  }, 300);
 }
 
 async function scan() {
