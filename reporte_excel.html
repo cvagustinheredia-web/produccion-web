@@ -31,7 +31,7 @@
     }
 
     .container{
-      max-width:1500px;
+      max-width:1650px;
       margin:0 auto;
       display:grid;
       gap:20px;
@@ -324,12 +324,15 @@
               <th>Tiempo objetivo</th>
               <th>Demorado</th>
               <th>Tiempo de demora</th>
+              <th>Justificación demora</th>
+              <th>Supervisor demora</th>
+              <th>Fecha justificación demora</th>
               <th>Tiempo parada en ese producto</th>
               <th>Tiempo de parada total del puesto</th>
             </tr>
           </thead>
           <tbody id="tablaDetalle">
-            <tr><td colspan="14" class="muted">Todavía no hay datos cargados.</td></tr>
+            <tr><td colspan="17" class="muted">Todavía no hay datos cargados.</td></tr>
           </tbody>
         </table>
       </div>
@@ -352,10 +355,13 @@
               <th>Inicio</th>
               <th>Fin</th>
               <th>Tiempo de parada</th>
+              <th>Justificación parada</th>
+              <th>Supervisor parada</th>
+              <th>Fecha justificación parada</th>
             </tr>
           </thead>
           <tbody id="tablaParadas">
-            <tr><td colspan="8" class="muted">Todavía no hay paradas cargadas.</td></tr>
+            <tr><td colspan="11" class="muted">Todavía no hay paradas cargadas.</td></tr>
           </tbody>
         </table>
       </div>
@@ -687,6 +693,11 @@ function construirDetalle(regs){
       const demoraMs = tiempoObjetivoMs > 0 ? Math.max(tiempoFabMs - tiempoObjetivoMs, 0) : 0;
       const demorado = tiempoObjetivoMs > 0 ? (tiempoFabMs > tiempoObjetivoMs ? "SI" : "NO") : "SIN OBJETIVO";
 
+      const justificacionDemora = r.justificacion_demora_supervisor || "SIN JUSTIFICAR";
+      const supervisorDemora = (r.supervisor_demora_nombre || r.supervisor_demora_legajo)
+        ? `${r.supervisor_demora_nombre || ''} (${r.supervisor_demora_legajo || ''})`.trim()
+        : "SIN JUSTIFICAR";
+
       detalle.push({
         sector: r.sector || "",
         linea: r.linea || "",
@@ -700,6 +711,9 @@ function construirDetalle(regs){
         tiempo_objetivo: msToTime(tiempoObjetivoMs),
         demorado: demorado,
         tiempo_demora: msToTime(demoraMs),
+        justificacion_demora: justificacionDemora,
+        supervisor_demora: supervisorDemora,
+        fecha_justificacion_demora: r.fecha_justificacion_demora ? formatFechaHora(r.fecha_justificacion_demora) : "SIN JUSTIFICAR",
         tiempo_parada_producto: msToTime(tiempoParadaProductoMs),
         tiempo_parada_total_puesto: msToTime(tiempoParadaPuestoMs),
         _tiempo_fabricacion_ms: tiempoFabMs
@@ -722,6 +736,11 @@ function construirParadasDetalle(regs){
 
     if (!inicio || !fin) return;
 
+    const justificacionParada = r.justificacion_supervisor || "SIN JUSTIFICAR";
+    const supervisorParada = (r.supervisor_nombre || r.supervisor_legajo)
+      ? `${r.supervisor_nombre || ''} (${r.supervisor_legajo || ''})`.trim()
+      : "SIN JUSTIFICAR";
+
     paradas.push({
       sector: r.sector || "",
       linea: r.linea || "",
@@ -730,7 +749,10 @@ function construirParadasDetalle(regs){
       motivo: r.motivo_parada || r.motivo || "SIN MOTIVO",
       inicio: formatFechaHora(r.inicio),
       fin: formatFechaHora(r.fin),
-      tiempo_parada: msToTime(Math.max(fin.getTime() - inicio.getTime(), 0))
+      tiempo_parada: msToTime(Math.max(fin.getTime() - inicio.getTime(), 0)),
+      justificacion_parada: justificacionParada,
+      supervisor_parada: supervisorParada,
+      fecha_justificacion_parada: r.fecha_justificacion ? formatFechaHora(r.fecha_justificacion) : "SIN JUSTIFICAR"
     });
   });
 
@@ -783,7 +805,7 @@ function pintarDetalle(detalle){
   const tbody = document.getElementById("tablaDetalle");
 
   if (!detalle.length) {
-    tbody.innerHTML = `<tr><td colspan="14" class="muted">No hay datos de producción para los filtros seleccionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="17" class="muted">No hay datos de producción para los filtros seleccionados.</td></tr>`;
     return;
   }
 
@@ -801,6 +823,9 @@ function pintarDetalle(detalle){
       <td>${d.tiempo_objetivo}</td>
       <td>${d.demorado}</td>
       <td>${d.tiempo_demora}</td>
+      <td>${d.justificacion_demora}</td>
+      <td>${d.supervisor_demora}</td>
+      <td>${d.fecha_justificacion_demora}</td>
       <td>${d.tiempo_parada_producto}</td>
       <td>${d.tiempo_parada_total_puesto}</td>
     </tr>
@@ -811,7 +836,7 @@ function pintarParadas(paradas){
   const tbody = document.getElementById("tablaParadas");
 
   if (!paradas.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="muted">No hay paradas para los filtros seleccionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="muted">No hay paradas para los filtros seleccionados.</td></tr>`;
     return;
   }
 
@@ -825,6 +850,9 @@ function pintarParadas(paradas){
       <td>${p.inicio}</td>
       <td>${p.fin}</td>
       <td>${p.tiempo_parada}</td>
+      <td>${p.justificacion_parada}</td>
+      <td>${p.supervisor_parada}</td>
+      <td>${p.fecha_justificacion_parada}</td>
     </tr>
   `).join('');
 }
@@ -862,6 +890,9 @@ function exportarExcel(){
     tiempo_objetivo: d.tiempo_objetivo,
     demorado: d.demorado,
     tiempo_demora: d.tiempo_demora,
+    justificacion_demora: d.justificacion_demora,
+    supervisor_demora: d.supervisor_demora,
+    fecha_justificacion_demora: d.fecha_justificacion_demora,
     tiempo_parada_producto: d.tiempo_parada_producto,
     tiempo_parada_total_puesto: d.tiempo_parada_total_puesto
   }));
@@ -886,7 +917,10 @@ function exportarExcel(){
     motivo: p.motivo,
     inicio: p.inicio,
     fin: p.fin,
-    tiempo_parada: p.tiempo_parada
+    tiempo_parada: p.tiempo_parada,
+    justificacion_parada: p.justificacion_parada,
+    supervisor_parada: p.supervisor_parada,
+    fecha_justificacion_parada: p.fecha_justificacion_parada
   }));
 
   const ws1 = XLSX.utils.json_to_sheet(detalleExcel.length ? detalleExcel : [{}]);
