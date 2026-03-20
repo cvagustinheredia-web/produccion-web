@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Supervisor - Paradas y Demoras</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    :root{
+      --bg:#eef3f7;
+      --panel:#ffffff;
+      --panel2:#f7f9fb;
+      --text:#163047;
+      --muted:#6f8091;
+      --border:#d5dee7;
+      --blue:#1f78d1;
+      --green:#1fa15a;
+      --orange:#e58b1b;
+      --red:#d64545;
+      --shadow:0 8px 20px rgba(0,0,0,.08);
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      padding:24px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,#edf2f7 0%, #e7edf4 100%);
+      color:var(--text);
+    }
+
+    .container{
+      max-width:1600px;
+      margin:0 auto;
+      display:grid;
+      gap:20px;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:22px;
+      box-shadow:var(--shadow);
+    }
+
+    .title{
+      margin:0 0 18px;
+      font-size:28px;
+      font-weight:900;
+    }
+
+    .subtitle{
+      margin:0 0 14px;
+      font-size:20px;
+      font-weight:900;
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns:repeat(7, 1fr);
+      gap:14px;
+      align-items:end;
+    }
+
+    .field label{
+      display:block;
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea{
+      width:100%;
+      border:1px solid var(--border);
+      background:var(--panel2);
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:14px;
+      color:var(--text);
+      outline:none;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    .field textarea{
+      min-height:90px;
+      resize:vertical;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:12px;
+      padding:12px 18px;
+      font-weight:800;
+      color:#fff;
+      cursor:pointer;
+      min-width:160px;
+    }
+
+    .btn-search{ background:var(--blue); }
+    .btn-save{ background:var(--green); min-width:auto; }
+    .btn-back{
+      background:var(--orange);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:20px;
+    }
+
+    .items{
+      display:grid;
+      gap:14px;
+    }
+
+    .item{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      background:var(--panel2);
+    }
+
+    .item-head{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .mini{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+      text-transform:uppercase;
+      margin-bottom:4px;
+    }
+
+    .val{
+      font-size:15px;
+      font-weight:800;
+      word-break:break-word;
+    }
+
+    .estado{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+    }
+
+    .estado.ok{
+      background:#dff4e8;
+      color:#157347;
+    }
+
+    .estado.pending{
+      background:#fff3cd;
+      color:#8a6d3b;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    @media (max-width:1300px){
+      .filters{ grid-template-columns:repeat(3, 1fr); }
+      .grid-2{ grid-template-columns:1fr; }
+      .item-head{ grid-template-columns:repeat(2, 1fr); }
+    }
+
+    @media (max-width:700px){
+      .filters{ grid-template-columns:1fr; }
+      .item-head{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="card">
+      <h1 class="title">SUPERVISIÓN DE PARADAS Y DEMORAS</h1>
+
+      <div class="filters">
+        <div class="field">
+          <label>Legajo supervisor</label>
+          <input type="text" id="supervisorLegajo" oninput="buscarSupervisor()">
+        </div>
+
+        <div class="field">
+          <label>Nombre supervisor</label>
+          <input type="text" id="supervisorNombre" readonly>
+        </div>
+
+        <div class="field">
+          <label>Sector</label>
+          <select id="sector" onchange="actualizarLineas()">
+            <option value="">TODOS</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Línea</label>
+          <select id="linea" onchange="actualizarPuestos()">
+            <option value="">TODAS</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Puesto</label>
+          <select id="puesto">
+            <option value="">TODOS</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Fecha desde</label>
+          <input type="date" id="fechaDesde">
+        </div>
+
+        <div class="field">
+          <label>Fecha hasta</label>
+          <input type="date" id="fechaHasta">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-search" onclick="buscarTodo()">BUSCAR</button>
+        <a class="btn btn-back" href="dashboard_kpi.html">VOLVER</a>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2 class="subtitle">PARADAS</h2>
+        <div id="listaParadas" class="items">
+          <div class="muted">Todavía no hay datos cargados.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="subtitle">DEMORAS</h2>
+        <div id="listaDemoras" class="items">
+          <div class="muted">Todavía no hay datos cargados.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+const supabaseClient = supabase.createClient(
+  "https://gqlftpalwqybyywdplei.supabase.co",
+  "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
+);
+
+const CONFIG_LINEAS = {
+  "MOIE": {
+    "LINEA MOTOR": [1,2,3,4,5,6],
+    "LINEA VIESA": [1,2,3,4],
+    "LINEA VARIOS": [1,2,3,4,5,6,7]
+  },
+  "MOV": {},
+  "TORNERIA": {},
+  "MECANIZADO": {},
+  "VIESA": {},
+  "INYECCION": {}
+};
+
+let paradasActuales = [];
+let demorasActuales = [];
+
+function parseFecha(valor){
+  if(!valor) return null;
+  const d = new Date(valor);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function msToTime(ms){
+  if(!ms || ms < 0 || isNaN(ms)) ms = 0;
+  const totalSeg = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeg / 3600);
+  const m = Math.floor((totalSeg % 3600) / 60);
+  const s = totalSeg % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatFechaHora(valor){
+  const d = parseFecha(valor);
+  if(!d) return "-";
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(d);
+}
+
+function obtenerTiempoObjetivoMs(linea, puesto){
+  const p = Number(puesto);
+
+  if (linea === "LINEA MOTOR" && [1,2,3,4].includes(p)) {
+    return 13 * 60 * 1000;
+  }
+
+  if (linea === "LINEA MOTOR" && p === 5) {
+    return 25 * 60 * 1000;
+  }
+
+  return 0;
+}
+
+function esRegistroLectura(r){
+  const tipo = String(r.tipo_registro || '').trim().toLowerCase();
+  const estado = String(r.estado || '').trim().toLowerCase();
+
+  if (estado === 'parado') return false;
+
+  if (tipo) {
+    return ['lectura', 'qr', 'produccion', 'fabricacion', 'continuacion'].includes(tipo);
+  }
+
+  return true;
+}
+
+function obtenerLegajo(r){
+  return r.legajo || r.leg_operario || r.operario_legajo || r.operario || "";
+}
+
+function obtenerNombreOperario(r){
+  return r.nombre_operario || r.operario_nombre || r.nombre || r.usuario || "";
+}
+
+function cargarSectores(){
+  const sel = document.getElementById("sector");
+  Object.keys(CONFIG_LINEAS).forEach(sector => {
+    const op = document.createElement("option");
+    op.value = sector;
+    op.textContent = sector;
+    sel.appendChild(op);
+  });
+}
+
+function actualizarLineas(){
+  const sector = document.getElementById("sector").value;
+  const lineaSel = document.getElementById("linea");
+  const puestoSel = document.getElementById("puesto");
+
+  lineaSel.innerHTML = `<option value="">TODAS</option>`;
+  puestoSel.innerHTML = `<option value="">TODOS</option>`;
+
+  if(!sector || !CONFIG_LINEAS[sector]) return;
+
+  Object.keys(CONFIG_LINEAS[sector]).forEach(linea => {
+    const op = document.createElement("option");
+    op.value = linea;
+    op.textContent = linea;
+    lineaSel.appendChild(op);
+  });
+}
+
+function actualizarPuestos(){
+  const sector = document.getElementById("sector").value;
+  const linea = document.getElementById("linea").value;
+  const puestoSel = document.getElementById("puesto");
+
+  puestoSel.innerHTML = `<option value="">TODOS</option>`;
+
+  if(!sector || !linea) return;
+  const puestos = CONFIG_LINEAS[sector]?.[linea] || [];
+  puestos.forEach(p => {
+    const op = document.createElement("option");
+    op.value = String(p);
+    op.textContent = `PUESTO ${p}`;
+    puestoSel.appendChild(op);
+  });
+}
+
+async function buscarSupervisor(){
+  const legajo = document.getElementById('supervisorLegajo').value.trim();
+  if (!legajo) {
+    document.getElementById('supervisorNombre').value = '';
+    return;
+  }
+
+  const { data } = await supabaseClient
+    .from('operarios')
+    .select('*')
+    .eq('legajo', legajo);
+
+  document.getElementById('supervisorNombre').value =
+    (data && data.length) ? data[0].nombre : '';
+}
+
+function obtenerSupervisor(){
+  return {
+    legajo: document.getElementById('supervisorLegajo').value.trim(),
+    nombre: document.getElementById('supervisorNombre').value.trim()
+  };
+}
+
+async function obtenerRegistrosBase(){
+  const sector = document.getElementById("sector").value;
+  const linea = document.getElementById("linea").value;
+  const puesto = document.getElementById("puesto").value;
+  const fechaDesde = document.getElementById("fechaDesde").value;
+  const fechaHasta = document.getElementById("fechaHasta").value;
+
+  const { data, error } = await supabaseClient
+    .from('registros')
+    .select('*')
+    .order('inicio', { ascending: true });
+
+  if (error) {
+    console.log(error);
+    return [];
+  }
+
+  let datos = data || [];
+
+  if (fechaDesde) {
+    const ini = new Date(`${fechaDesde}T00:00:00`);
+    datos = datos.filter(r => {
+      const f = parseFecha(r.inicio);
+      return f && f >= ini;
+    });
+  }
+
+  if (fechaHasta) {
+    const fin = new Date(`${fechaHasta}T23:59:59`);
+    datos = datos.filter(r => {
+      const f = parseFecha(r.inicio);
+      return f && f <= fin;
+    });
+  }
+
+  if (sector) datos = datos.filter(r => r.sector === sector);
+  if (linea) datos = datos.filter(r => r.linea === linea);
+  if (puesto) datos = datos.filter(r => Number(r.puesto) === Number(puesto));
+
+  return datos;
+}
+
+function construirParadas(regs){
+  return regs
+    .filter(r => String(r.estado || '').trim().toLowerCase() === 'parado')
+    .map(r => {
+      const ini = parseFecha(r.inicio);
+      const fin = r.fin ? parseFecha(r.fin) : new Date();
+      const tiempoMs = ini && fin ? Math.max(fin.getTime() - ini.getTime(), 0) : 0;
+
+      return {
+        id: r.id,
+        sector: r.sector || "",
+        linea: r.linea || "",
+        puesto: r.puesto || "",
+        producto: r.producto || "",
+        operario_legajo: obtenerLegajo(r),
+        operario_nombre: obtenerNombreOperario(r),
+        motivo: r.motivo_parada || r.motivo || "SIN MOTIVO",
+        inicio: formatFechaHora(r.inicio),
+        fin: formatFechaHora(r.fin),
+        tiempo_parada: msToTime(tiempoMs),
+        justificacion: r.justificacion_supervisor || "",
+        supervisor_legajo: r.supervisor_legajo || "",
+        supervisor_nombre: r.supervisor_nombre || "",
+        fecha_justificacion: r.fecha_justificacion ? formatFechaHora(r.fecha_justificacion) : ""
+      };
+    });
+}
+
+function construirDemoras(regs){
+  const detalle = [];
+  const grupos = {};
+
+  regs.forEach(r => {
+    const key = `${r.sector || ''}||${r.linea || ''}||${r.puesto || ''}`;
+    if (!grupos[key]) grupos[key] = [];
+    grupos[key].push(r);
+  });
+
+  Object.values(grupos).forEach(lista => {
+    lista.sort((a, b) => {
+      const fa = parseFecha(a.inicio);
+      const fb = parseFecha(b.inicio);
+      return (fa ? fa.getTime() : 0) - (fb ? fb.getTime() : 0);
+    });
+
+    const lecturas = lista.filter(esRegistroLectura);
+
+    lecturas.forEach((r, idx) => {
+      const siguiente = lecturas[idx + 1];
+      if (!siguiente) return;
+
+      const inicio = parseFecha(r.inicio);
+      const fin = parseFecha(siguiente.inicio);
+      if (!inicio || !fin) return;
+
+      const tiempoFabMs = Math.max(fin.getTime() - inicio.getTime(), 0);
+      const tiempoObjetivoMs = obtenerTiempoObjetivoMs(r.linea, r.puesto);
+      const demoraMs = tiempoObjetivoMs > 0 ? Math.max(tiempoFabMs - tiempoObjetivoMs, 0) : 0;
+
+      if (demoraMs <= 0) return;
+
+      detalle.push({
+        id: r.id,
+        sector: r.sector || "",
+        linea: r.linea || "",
+        puesto: r.puesto || "",
+        producto: r.producto || r.qr || r.codigo_producto || r.codigo_qr || "",
+        operario_legajo: obtenerLegajo(r),
+        operario_nombre: obtenerNombreOperario(r),
+        inicio: formatFechaHora(r.inicio),
+        fin: formatFechaHora(siguiente.inicio),
+        tiempo_fabricacion: msToTime(tiempoFabMs),
+        tiempo_objetivo: msToTime(tiempoObjetivoMs),
+        tiempo_demora: msToTime(demoraMs),
+        justificacion: r.justificacion_demora_supervisor || "",
+        supervisor_legajo: r.supervisor_demora_legajo || "",
+        supervisor_nombre: r.supervisor_demora_nombre || "",
+        fecha_justificacion: r.fecha_justificacion_demora ? formatFechaHora(r.fecha_justificacion_demora) : ""
+      });
+    });
+  });
+
+  return detalle;
+}
+
+function pintarParadas(items){
+  const cont = document.getElementById('listaParadas');
+
+  if (!items.length) {
+    cont.innerHTML = `<div class="muted">No hay paradas para los filtros seleccionados.</div>`;
+    return;
+  }
+
+  cont.innerHTML = items.map(p => `
+    <div class="item">
+      <div class="item-head">
+        <div><div class="mini">Producto</div><div class="val">${p.producto}</div></div>
+        <div><div class="mini">Puesto</div><div class="val">${p.linea} - ${p.puesto}</div></div>
+        <div><div class="mini">Motivo</div><div class="val">${p.motivo}</div></div>
+        <div><div class="mini">Tiempo</div><div class="val">${p.tiempo_parada}</div></div>
+      </div>
+
+      <div class="item-head">
+        <div><div class="mini">Inicio</div><div class="val">${p.inicio}</div></div>
+        <div><div class="mini">Fin</div><div class="val">${p.fin}</div></div>
+        <div><div class="mini">Operario</div><div class="val">${p.operario_legajo} ${p.operario_nombre}</div></div>
+        <div>
+          <div class="mini">Estado</div>
+          <div class="val">
+            ${p.justificacion ? '<span class="estado ok">JUSTIFICADO</span>' : '<span class="estado pending">SIN JUSTIFICAR</span>'}
+          </div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:10px;">
+        <label>Justificación supervisor</label>
+        <textarea id="justParada_${p.id}" placeholder="Ingresar justificación...">${p.justificacion || ''}</textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-save" onclick="guardarJustificacionParada(${p.id})">GUARDAR JUSTIFICACIÓN</button>
+        <div class="muted">${p.fecha_justificacion ? `Última carga: ${p.fecha_justificacion} - ${p.supervisor_nombre || ''} (${p.supervisor_legajo || ''})` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function pintarDemoras(items){
+  const cont = document.getElementById('listaDemoras');
+
+  if (!items.length) {
+    cont.innerHTML = `<div class="muted">No hay demoras para los filtros seleccionados.</div>`;
+    return;
+  }
+
+  cont.innerHTML = items.map(d => `
+    <div class="item">
+      <div class="item-head">
+        <div><div class="mini">Producto</div><div class="val">${d.producto}</div></div>
+        <div><div class="mini">Puesto</div><div class="val">${d.linea} - ${d.puesto}</div></div>
+        <div><div class="mini">Tiempo fábrica</div><div class="val">${d.tiempo_fabricacion}</div></div>
+        <div><div class="mini">Tiempo demora</div><div class="val">${d.tiempo_demora}</div></div>
+      </div>
+
+      <div class="item-head">
+        <div><div class="mini">Objetivo</div><div class="val">${d.tiempo_objetivo}</div></div>
+        <div><div class="mini">Inicio</div><div class="val">${d.inicio}</div></div>
+        <div><div class="mini">Fin</div><div class="val">${d.fin}</div></div>
+        <div>
+          <div class="mini">Estado</div>
+          <div class="val">
+            ${d.justificacion ? '<span class="estado ok">JUSTIFICADO</span>' : '<span class="estado pending">SIN JUSTIFICAR</span>'}
+          </div>
+        </div>
+      </div>
+
+      <div class="item-head">
+        <div><div class="mini">Operario</div><div class="val">${d.operario_legajo} ${d.operario_nombre}</div></div>
+      </div>
+
+      <div class="field" style="margin-top:10px;">
+        <label>Justificación demora</label>
+        <textarea id="justDemora_${d.id}" placeholder="Ingresar justificación de demora...">${d.justificacion || ''}</textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-save" onclick="guardarJustificacionDemora(${d.id})">GUARDAR JUSTIFICACIÓN</button>
+        <div class="muted">${d.fecha_justificacion ? `Última carga: ${d.fecha_justificacion} - ${d.supervisor_nombre || ''} (${d.supervisor_legajo || ''})` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function guardarJustificacionParada(id){
+  const supervisor = obtenerSupervisor();
+
+  if (!supervisor.legajo || !supervisor.nombre) {
+    alert('Ingresá un legajo de supervisor válido.');
+    return;
+  }
+
+  const texto = document.getElementById(`justParada_${id}`).value.trim();
+
+  if (!texto) {
+    alert('La justificación no puede estar vacía.');
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('registros')
+    .update({
+      justificacion_supervisor: texto,
+      supervisor_legajo: supervisor.legajo,
+      supervisor_nombre: supervisor.nombre,
+      fecha_justificacion: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.log(error);
+    alert('Error guardando justificación de parada.');
+    return;
+  }
+
+  alert('Justificación de parada guardada.');
+  buscarTodo();
+}
+
+async function guardarJustificacionDemora(id){
+  const supervisor = obtenerSupervisor();
+
+  if (!supervisor.legajo || !supervisor.nombre) {
+    alert('Ingresá un legajo de supervisor válido.');
+    return;
+  }
+
+  const texto = document.getElementById(`justDemora_${id}`).value.trim();
+
+  if (!texto) {
+    alert('La justificación no puede estar vacía.');
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('registros')
+    .update({
+      justificacion_demora_supervisor: texto,
+      supervisor_demora_legajo: supervisor.legajo,
+      supervisor_demora_nombre: supervisor.nombre,
+      fecha_justificacion_demora: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.log(error);
+    alert('Error guardando justificación de demora.');
+    return;
+  }
+
+  alert('Justificación de demora guardada.');
+  buscarTodo();
+}
+
+async function buscarTodo(){
+  const regs = await obtenerRegistrosBase();
+  paradasActuales = construirParadas(regs);
+  demorasActuales = construirDemoras(regs);
+
+  pintarParadas(paradasActuales);
+  pintarDemoras(demorasActuales);
+}
+
+(function init(){
+  cargarSectores();
+
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm = String(hoy.getMonth() + 1).padStart(2,'0');
+  const dd = String(hoy.getDate()).padStart(2,'0');
+  const fechaHoy = `${yyyy}-${mm}-${dd}`;
+
+  document.getElementById('fechaDesde').value = fechaHoy;
+  document.getElementById('fechaHasta').value = fechaHoy;
+})();
+</script>
+</body>
+</html>
