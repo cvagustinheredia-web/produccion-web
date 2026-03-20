@@ -356,6 +356,7 @@ let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
 let lineaSeleccionada = 'LINEA MOTOR';
+let ventanaPlano = null;  
 
 function formatearFechaArgentina(fechaIso) {
   return new Intl.DateTimeFormat('es-AR', {
@@ -595,16 +596,25 @@ function seleccionarPuesto(num) {
   document.getElementById('qr').focus();
 }
 
+let ventanaPlano = null;
+
 function abrirPlanoAutomatico(codigoQR) {
   const codigo = String(codigoQR || '').trim();
   if (!codigo) return;
 
   const url = `${BASE_PLANOS}/abrir?codigo=${encodeURIComponent(codigo)}`;
 
-  // 🔥 clave: misma ventana siempre
-  window.open(url, 'MOIE_PLANO');
+  try {
+    if (ventanaPlano && !ventanaPlano.closed) {
+      ventanaPlano.location.href = url;
+      ventanaPlano.focus();
+    } else {
+      ventanaPlano = window.open(url, 'MOIE_PLANO');
+    }
+  } catch (e) {
+    ventanaPlano = window.open(url, 'MOIE_PLANO');
+  }
 
-  // dejar listo el siguiente QR
   setTimeout(() => {
     const qrInput = document.getElementById('qr');
     if (qrInput) {
