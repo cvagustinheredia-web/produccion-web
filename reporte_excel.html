@@ -31,7 +31,7 @@
     }
 
     .container{
-      max-width:1450px;
+      max-width:1500px;
       margin:0 auto;
       display:grid;
       gap:20px;
@@ -321,12 +321,15 @@
               <th>Inicio</th>
               <th>Fin</th>
               <th>Tiempo de fábrica</th>
+              <th>Tiempo objetivo</th>
+              <th>Demorado</th>
+              <th>Tiempo de demora</th>
               <th>Tiempo parada en ese producto</th>
               <th>Tiempo de parada total del puesto</th>
             </tr>
           </thead>
           <tbody id="tablaDetalle">
-            <tr><td colspan="11" class="muted">Todavía no hay datos cargados.</td></tr>
+            <tr><td colspan="14" class="muted">Todavía no hay datos cargados.</td></tr>
           </tbody>
         </table>
       </div>
@@ -396,18 +399,18 @@ function esRegistroLectura(r){
   if (estado === 'parado') return false;
 
   if (tipo) {
-    return ['lectura', 'qr', 'produccion', 'fabricacion'].includes(tipo);
+    return ['lectura', 'qr', 'produccion', 'fabricacion', 'continuacion'].includes(tipo);
   }
 
   return true;
 }
 
 function obtenerLegajo(r){
-  return r.legajo || r.leg_operario || r.operario_legajo || "";
+  return r.legajo || r.leg_operario || r.operario_legajo || r.operario || "";
 }
 
 function obtenerNombreOperario(r){
-  return r.nombre_operario || r.operario || r.nombre || r.usuario || "";
+  return r.nombre_operario || r.operario_nombre || r.nombre || r.usuario || "";
 }
 
 function msToTime(ms){
@@ -517,18 +520,29 @@ function rangoPorFechaYTurno(fechaDesde, fechaHasta, turno){
   return { inicio, fin };
 }
 
+function obtenerTiempoObjetivoMs(linea, puesto){
+  const p = Number(puesto);
+
+  if (linea === "LINEA MOTOR" && [1,2,3,4].includes(p)) {
+    return 13 * 60 * 1000;
+  }
+
+  if (linea === "LINEA MOTOR" && p === 5) {
+    return 25 * 60 * 1000;
+  }
+
+  return 0;
+}
+
 function calcularPiezasProgramadas(detalle){
   let total = 0;
 
   detalle.forEach(row => {
     const tiempoMs = row._tiempo_fabricacion_ms || 0;
+    const tiempoObjetivoMs = obtenerTiempoObjetivoMs(row.linea, row.puesto);
 
-    if (row.linea === "LINEA MOTOR" && [1,2,3,4].includes(Number(row.puesto))) {
-      total += Math.floor(tiempoMs / (13 * 60 * 1000));
-    }
-
-    if (row.linea === "LINEA MOTOR" && Number(row.puesto) === 5) {
-      total += Math.floor(tiempoMs / (25 * 60 * 1000));
+    if (tiempoObjetivoMs > 0) {
+      total += Math.floor(tiempoMs / tiempoObjetivoMs);
     }
   });
 
@@ -669,6 +683,10 @@ function construirDetalle(regs){
         fin
       );
 
+      const tiempoObjetivoMs = obtenerTiempoObjetivoMs(r.linea, r.puesto);
+      const demoraMs = tiempoObjetivoMs > 0 ? Math.max(tiempoFabMs - tiempoObjetivoMs, 0) : 0;
+      const demorado = tiempoObjetivoMs > 0 ? (tiempoFabMs > tiempoObjetivoMs ? "SI" : "NO") : "SIN OBJETIVO";
+
       detalle.push({
         sector: r.sector || "",
         linea: r.linea || "",
@@ -679,6 +697,9 @@ function construirDetalle(regs){
         inicio: formatFechaHora(r.inicio),
         fin: formatFechaHora(siguiente.inicio),
         tiempo_fabricacion: msToTime(tiempoFabMs),
+        tiempo_objetivo: msToTime(tiempoObjetivoMs),
+        demorado: demorado,
+        tiempo_demora: msToTime(demoraMs),
         tiempo_parada_producto: msToTime(tiempoParadaProductoMs),
         tiempo_parada_total_puesto: msToTime(tiempoParadaPuestoMs),
         _tiempo_fabricacion_ms: tiempoFabMs
@@ -762,7 +783,7 @@ function pintarDetalle(detalle){
   const tbody = document.getElementById("tablaDetalle");
 
   if (!detalle.length) {
-    tbody.innerHTML = `<tr><td colspan="11" class="muted">No hay datos de producción para los filtros seleccionados.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" class="muted">No hay datos de producción para los filtros seleccionados.</td></tr>`;
     return;
   }
 
@@ -777,6 +798,9 @@ function pintarDetalle(detalle){
       <td>${d.inicio}</td>
       <td>${d.fin}</td>
       <td>${d.tiempo_fabricacion}</td>
+      <td>${d.tiempo_objetivo}</td>
+      <td>${d.demorado}</td>
+      <td>${d.tiempo_demora}</td>
       <td>${d.tiempo_parada_producto}</td>
       <td>${d.tiempo_parada_total_puesto}</td>
     </tr>
@@ -835,6 +859,9 @@ function exportarExcel(){
     inicio: d.inicio,
     fin: d.fin,
     tiempo_fabricacion: d.tiempo_fabricacion,
+    tiempo_objetivo: d.tiempo_objetivo,
+    demorado: d.demorado,
+    tiempo_demora: d.tiempo_demora,
     tiempo_parada_producto: d.tiempo_parada_producto,
     tiempo_parada_total_puesto: d.tiempo_parada_total_puesto
   }));
