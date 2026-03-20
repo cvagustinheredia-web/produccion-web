@@ -20,7 +20,7 @@
       --shadow:0 8px 20px rgba(0,0,0,.08);
     }
 
-    *{box-sizing:border-box}
+    *{ box-sizing:border-box; }
 
     body{
       margin:0;
@@ -76,7 +76,8 @@
       box-shadow:var(--shadow);
     }
 
-    .header-title,.section-title{
+    .header-title,
+    .section-title{
       margin:0 0 12px;
       font-size:28px;
       font-weight:900;
@@ -100,14 +101,18 @@
       font-weight:700;
     }
 
-    .input-row,.row,.actions,.grupo-botones{
+    .input-row,
+    .row,
+    .actions,
+    .grupo-botones{
       display:flex;
       flex-wrap:wrap;
       gap:12px;
       align-items:flex-end;
     }
 
-    input,select{
+    input,
+    select{
       width:100%;
       max-width:360px;
       background:var(--panel2);
@@ -119,7 +124,8 @@
       outline:none;
     }
 
-    input:focus,select:focus{
+    input:focus,
+    select:focus{
       border-color:var(--blue);
       box-shadow:0 0 0 3px rgba(31,120,209,.12);
     }
@@ -135,10 +141,10 @@
       min-height:50px;
     }
 
-    .btn-primary{background:var(--blue)}
-    .btn-success{background:var(--green)}
-    .btn-orange{background:var(--orange)}
-    .btn-gray{background:#7a8895}
+    .btn-primary{ background:var(--blue); }
+    .btn-success{ background:var(--green); }
+    .btn-orange{ background:var(--orange); }
+    .btn-gray{ background:#7a8895; }
 
     .btn-puesto{
       min-width:120px;
@@ -153,7 +159,7 @@
 
     .bloqueado{
       pointer-events:none;
-      opacity:.6
+      opacity:.6;
     }
 
     .tag{
@@ -180,10 +186,10 @@
       box-shadow:var(--shadow);
     }
 
-    .esperando{background:#8391a0}
-    .produciendo{background:#1fa15a}
-    .parado{background:#d64545}
-    .turno{background:#e58b1b}
+    .esperando{ background:#8391a0; }
+    .produciendo{ background:#1fa15a; }
+    .parado{ background:#d64545; }
+    .turno{ background:#e58b1b; }
 
     .info-grid{
       display:grid;
@@ -242,10 +248,16 @@
 
     <div class="card">
       <h2 class="header-title">INGRESE SU LEGAJO</h2>
+
       <div class="input-row">
         <div>
           <label class="label">LEGAJO</label>
-          <input id="legajo" placeholder="Ingresar o escanear legajo" oninput="buscarOperario()" onkeydown="capturarEnterLegajo(event)">
+          <input
+            id="legajo"
+            placeholder="Ingresar o escanear legajo"
+            oninput="buscarOperario()"
+            onkeydown="capturarEnterLegajo(event)"
+          >
           <div id="nombreOperario" style="font-size:22px;font-weight:900;margin-top:12px;color:#163047;"></div>
           <div class="help">Podés escribirlo manualmente o leerlo con QR. Enter ingresa automáticamente.</div>
         </div>
@@ -356,7 +368,7 @@ let operario = '';
 let nombre = '';
 let puestoSeleccionado = null;
 let lineaSeleccionada = 'LINEA MOTOR';
-let ventanaPlano = null;  
+let ventanaPlano = null;
 
 function formatearFechaArgentina(fechaIso) {
   return new Intl.DateTimeFormat('es-AR', {
@@ -595,8 +607,6 @@ function seleccionarPuesto(num) {
   document.getElementById('linea').disabled = true;
   document.getElementById('qr').focus();
 }
-
-let ventanaPlano = null;
 
 function abrirPlanoAutomatico(codigoQR) {
   const codigo = String(codigoQR || '').trim();
