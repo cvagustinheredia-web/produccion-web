@@ -336,8 +336,7 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
-// Backend local que busca el plano en C:\Users\agustin.heredia\Desktop\PLANOS
-const BASE_PLANOS = "http://127.0.0.1:5000";
+const BASE_PLANOS = "http://localhost:3001";
 
 const LINEAS = {
   "LINEA MOTOR": [
@@ -613,7 +612,7 @@ function abrirPlanoAutomatico(codigoQR) {
   const codigo = String(codigoQR || '').trim();
   if (!codigo) return;
 
-  const url = `${BASE_PLANOS}/ver_plano?codigo=${encodeURIComponent(codigo)}`;
+  const url = `${BASE_PLANOS}/abrir?codigo=${encodeURIComponent(codigo)}`;
 
   try {
     if (ventanaPlano && !ventanaPlano.closed) {
