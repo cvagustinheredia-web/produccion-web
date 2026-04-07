@@ -336,7 +336,8 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_O3UlpvORDFvMmNM-lPwtnA_AKzOTpiy"
 );
 
-const BASE_PLANOS = "http://localhost:3010";
+// Backend local que busca el plano en C:\Users\agustin.heredia\Desktop\PLANOS
+const BASE_PLANOS = "http://127.0.0.1:5000";
 
 const LINEAS = {
   "LINEA MOTOR": [
@@ -612,7 +613,7 @@ function abrirPlanoAutomatico(codigoQR) {
   const codigo = String(codigoQR || '').trim();
   if (!codigo) return;
 
-  const url = `${BASE_PLANOS}/abrir?codigo=${encodeURIComponent(codigo)}`;
+  const url = `${BASE_PLANOS}/ver_plano?codigo=${encodeURIComponent(codigo)}`;
 
   try {
     if (ventanaPlano && !ventanaPlano.closed) {
@@ -624,7 +625,6 @@ function abrirPlanoAutomatico(codigoQR) {
     ventanaPlano = window.open(url, 'MOIE_PLANO');
   }
 
-  // 🔥 devolvemos el foco al index para seguir leyendo QR acá
   setTimeout(() => {
     window.focus();
     const qrInput = document.getElementById('qr');
